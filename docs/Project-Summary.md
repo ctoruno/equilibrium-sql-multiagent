@@ -12,8 +12,10 @@ Chatbot system that can answer complex user questions by querying two separate, 
 - **Architecture**: Multi-agent system with separate agents for each database
 
 ## Multi-Agent Architecture with LangGraph
+- **Multi-Agent Orchestration**: Specialized agents for ENAHO and GEIH databases with intelligent routing
+
 ```
-User Query → Router Agent → [ENAHO Agent | GEIH Agent] → Table Selection (System Prompt) → Column Retrieval (Vector DB) → SQL Generation → Execution → Response
+User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → Table Selection (System Prompt) → Column Retrieval (Vector DB) → SQL Generation → Execution → Response
 ```
 
 ![](esma-flow-diagram.png)
@@ -21,7 +23,14 @@ User Query → Router Agent → [ENAHO Agent | GEIH Agent] → Table Selection (
 ## Agent Design Strategy
 - **System Prompt**: Contains table descriptions and business logic for immediate table selection
 - **Vector Retrieval**: Query column namespace filtered by selected table(s) for relevant columns
-- **Documentation Access**: Can query documentation namespace for methodology clarifications
+- **Documentation Access**: Specialized agents can query documentation namespace for methodology clarifications
+- **Token Management**: Intelligent message trimming and summarization to maintain context while respecting LLM token limits
+- **Conversation Persistence**: Long-term memory with conversation threads saved to BigQuery datasets for continuity across sessions
+
+## Current Prototype Limitations
+- **Single Universal User**: The application operates with a single user model - no individual user authentication or personalized data management
+- **Restricted Access**: Access will be limited to authorized users only, though without individual user account management
+- **Prototype Status**: This is a proof-of-concept implementation designed to validate the multi-agent SQL generation approach
 
 ## Database Complexity Challenge
 - **ENAHO Database**: 11 tables, 20-75 columns per table (~440-660 total columns)
@@ -29,8 +38,6 @@ User Query → Router Agent → [ENAHO Agent | GEIH Agent] → Table Selection (
 - **Documentation**:
   - ENAHO: Each table has a JSON file with schema and variable information and a brief description of what the table contains
   - GEIH: Each table has a JSON file with schema and variable information and a brief description of what the table contains
-
-## Key Design Decisions
 
 ### Query Scope
 - Users will **rarely need to combine information** from both databases
@@ -95,6 +102,20 @@ User Query → Router Agent → [ENAHO Agent | GEIH Agent] → Table Selection (
 - **Columns**: Concatenate column_name, description, business_meaning, and valid_values (if available)
 - **Documentation**: 650-token chunks with 75-token overlap for context continuity
 
+## Key Technical Considerations
+- **Schema versioning**: Handle missing/unclear documentation gracefully
+- **Query validation**: Prevent hallucinated table/column names using retrieved metadata
+- **Performance**: Efficient embedding retrieval with table filtering
+- **Maintainability**: Design code for easy system update when new databases/agents are added
+- **Similarity thresholds**: Implement fallback when vector retrieval confidence is low
+- **Conversation Management**: Implement effective message trimming strategies to maintain context continuity
+- **Data Persistence**: Design conversation storage schema for efficient retrieval and thread reconstruction
+
+## Future Enhancements (Post-Prototype)
+- **Caching Layer**: Redis-like database implementation for query result caching and performance optimization
+- **User Authentication**: Individual user accounts with role-based access control and personalized query history
+- **Multi-User Architecture**: Separate data spaces, conversation histories, and preferences per authenticated user
+
 ## Implementation Timeline
 
 ### Data Infrastructure Setup (Week 1)
@@ -147,12 +168,3 @@ User Query → Router Agent → [ENAHO Agent | GEIH Agent] → Table Selection (
 2. Integration Layer
 3. Testing & Validation
 4. Documentation & Handover
-
-## Key Technical Considerations
-- **Schema versioning**: Handle missing/unclear documentation gracefully
-- **Query validation**: Prevent hallucinated table/column names using retrieved metadata
-- **Performance**: Efficient embedding retrieval with table filtering
-- **Maintainability**: Design code for easy system update when new databases/agents are added
-- **Similarity thresholds**: Implement fallback when vector retrieval confidence is low
-
-
