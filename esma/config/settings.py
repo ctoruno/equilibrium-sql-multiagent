@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, Dict
 
 class Settings(BaseSettings):
     # API Keys
@@ -13,14 +13,30 @@ class Settings(BaseSettings):
     enaho_dataset: str = "enaho_2024"
     geih_dataset: str = "geih_2024"
     
-    # Pinecone
-    enaho_index_name: str = "enaho-2024"
-    geih_index_name: str = "geih-2024"
+    # Pinecone & VoyageAI
+    similarity_threshold: float = 0.25
+    max_column_retrieval_results: int = 15
+    max_docs_retrieval_results: int = 50
+    pc_indexes: Dict[str, str] = {
+        "enaho": "enaho-2024",
+        "geih": "geih-2024"
+    }
+    embedding_model: str = "voyage-3.5"
     
     # LLM Settings
     default_model: str = "openai:gpt-5"
     max_tokens: int = 10000
     temperature: float = 0.1
+
+    # SQL Settings
+    sql_result_limit: int = 10000
+    max_retries: int = 3
+
+    # LangSmith
+    langsmith_tracing: bool
+    langsmith_endpoint: str 
+    langsmith_project: str
+    langsmith_api_key: Optional[str] = None
     
     class Config:
         env_file = ".env"

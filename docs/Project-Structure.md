@@ -35,7 +35,7 @@ equilibrium-sql-agent/
 │   │   ├── conversation_manager.py  # Main orchestrator
 │   │   ├── persistence.py           # BigQuery storage (Long-term Memory Persistance)
 │   │   ├── trimmer.py               # Token management & summarization
-│   │   └── models.py                # Data models for conversations
+│   │   └── state_models.py          # Pydantic models for graph states
 │   ├── tools/
 │   │   ├── __init__.py
 │   │   ├── column_retriever.py      # Pinecone vector search for columns

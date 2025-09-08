@@ -1,7 +1,7 @@
 [project]
-name = "equilibrium-sql-multiagent"
+name = "esma"
 version = "0.1.0"
-description = "Add your description here"
+description = "Chatbot system that can answer complex user questions by querying two separate, complex databases: ENAHO and GEIH."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -12,6 +12,7 @@ dependencies = [
     "langchain-community>=0.3.29",
     "langchain-google-genai>=2.1.10",
     "langchain-openai>=0.3.32",
+    "langchain-pinecone>=0.2.12",
     "langgraph>=0.6.6",
     "openai>=1.102.0",
     "pandas-gbq>=0.29.2",
@@ -27,10 +28,20 @@ dev = [
     "argparse>=1.4.0",
     "beautifulsoup4>=4.13.5",
     "ipykernel>=6.30.1",
+    "ipywidgets>=8.1.7",
     "lxml>=6.0.1",
     "pandas>=2.3.2",
     "pypdf2>=3.0.1",
+    "pytest>=8.4.2",
     "python-dotenv>=1.1.1",
     "requests>=2.32.5",
     "tiktoken>=0.11.0",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["esma*"]
