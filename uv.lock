@@ -303,6 +303,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "google-cloud-bigquery" },
+    { name = "google-cloud-bigquery-storage" },
     { name = "google-cloud-storage" },
     { name = "google-genai" },
     { name = "langchain" },
@@ -338,6 +339,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "google-cloud-bigquery", specifier = ">=3.36.0" },
+    { name = "google-cloud-bigquery-storage", specifier = ">=2.33.0" },
     { name = "google-cloud-storage", specifier = ">=3.3.0" },
     { name = "google-genai", specifier = ">=1.33.0" },
     { name = "langchain", specifier = ">=0.3.27" },
@@ -529,6 +531,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ac/76/a9bc50b0b14732f81f18b523f273f89c637a5f62187413d7296a91915e57/google_cloud_bigquery-3.36.0.tar.gz", hash = "sha256:519d7a16be2119dca1ea8871e6dd45f971a8382c337cbe045319543b9e743bdd", size = 502014 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f3/41/47fbf5881f35b5a3adeeb3e39bdfa54e5512c22fb5c6a48c3b8d4be13ba9/google_cloud_bigquery-3.36.0-py3-none-any.whl", hash = "sha256:0cfbad09999907600fd0618794491db10000d98911ec7768ac6041cb9a0257dd", size = 258479 },
+]
+
+[[package]]
+name = "google-cloud-bigquery-storage"
+version = "2.33.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/19/982d062b59e2eddb1618075d2c7296d1665a03542f854be6e3d576c03584/google_cloud_bigquery_storage-2.33.0.tar.gz", hash = "sha256:67a833cdcf2b2eb7a352538a67fff59c3c0b7da63f6d5aa12a70f8e38be9f091", size = 295012 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/1e/f8a96e150dc3469188bd1f55410aeee51cbc1eeba90f1c7a8dcc41a505db/google_cloud_bigquery_storage-2.33.0-py3-none-any.whl", hash = "sha256:760143eb6840145b390334fcd310c523780c5ac2b97920547ac0b82b455f6b1b", size = 296525 },
 ]
 
 [[package]]

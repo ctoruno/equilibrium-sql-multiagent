@@ -10,8 +10,14 @@ class Settings(BaseSettings):
     # BigQuery
     gcp_project_id: str
     google_application_credentials: Optional[str] = None
-    enaho_dataset: str = "enaho_2024"
-    geih_dataset: str = "geih_2024"
+    dataset_ids: Dict[str, str] = {
+        "enaho": "enaho_2024",
+        "geih": "geih_2024"
+    }
+
+    # SQL Settings
+    sql_result_limit: int = 5000
+    max_retries: int = 3
     
     # Pinecone & VoyageAI
     similarity_threshold: float = 0.25
@@ -27,10 +33,6 @@ class Settings(BaseSettings):
     default_model: str = "openai:gpt-5"
     max_tokens: int = 10000
     temperature: float = 0.1
-
-    # SQL Settings
-    sql_result_limit: int = 10000
-    max_retries: int = 3
 
     # LangSmith
     langsmith_tracing: bool
