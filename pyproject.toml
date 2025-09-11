@@ -15,6 +15,7 @@ dependencies = [
     "langchain-openai>=0.3.32",
     "langchain-pinecone>=0.2.12",
     "langgraph>=0.6.6",
+    "langgraph-cli[inmem]>=0.4.2",
     "openai>=1.102.0",
     "pandas-gbq>=0.29.2",
     "pinecone>=7.3.0",

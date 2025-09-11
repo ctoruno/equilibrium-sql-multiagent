@@ -2,30 +2,33 @@
 Base SQL Agent for ENAHO and GEIH specialized agents
 """
 import json
-import time
 import logging
-from typing import Dict, Any, List, Optional
 
 from langgraph.graph import StateGraph, END
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
+from langgraph.checkpoint.memory import MemorySaver
 
-from esma.config import settings
+from esma.config.settings import settings
 from esma.tools.column_retriever import ColumnRetriever
 from esma.tools.schema_validator import SchemaValidator
 from esma.tools.sql_executor import SQLExecutor
 from esma.prompts.prompt_loader import PromptLoader
+from esma.memory.state_models import BaseSQLState, ValidationResult
 
 logger = logging.getLogger(__name__)
 
 class BaseSQLAgent:
     """Base class for database-specific SQL agents"""
     
-    def __init__(
-        self,
-        database_name: str
-    ):
+    def __init__(self, database_name: str):
+        """
+        Initialize the base SQL agent.
+        
+        Args:
+            database_name: Either "enaho" or "geih"
+        """
         self.database_name = database_name
         self.llm: BaseChatModel = init_chat_model(
             settings.default_model, 
@@ -35,305 +38,375 @@ class BaseSQLAgent:
         self.max_retries = settings.max_retries
         self.sql_result_limit = settings.sql_result_limit
         
-        self.column_retriever = ColumnRetriever(database_name)
-        self.schema_validator = SchemaValidator(database_name)
-        self.sql_executor = SQLExecutor(
-            database_name, 
-            result_limit=self.sql_result_limit
-        )
-        self.prompt_loader = PromptLoader()
+        self.column_retriever = ColumnRetriever()
+        self.schema_validator = SchemaValidator()
+        self.sql_executor = SQLExecutor()
+
+        self.prompt_loader = PromptLoader(database_name)
+        self.checkpointer = MemorySaver()
+
+    
+    def _format_columns_for_prompt(self, columns: list) -> str:
+        """Format column information for SQL generation prompt"""
+        
+        formatted_lines = []
+        
+        for col in columns:
+            table_id = col.get("table_id", "unknown")
+            column_name = col.get("column_name", "unknown")
+            data_type = col.get("data_type", "unknown")
+            description = col.get("description", "")
+            business_meaning = col.get("business_meaning", "")
+            valid_values = col.get("valid_values", {})
+            
+            line = f"- {table_id}.{column_name} ({data_type}): {description} / {business_meaning}"      
+            
+            if valid_values and isinstance(valid_values, dict):
+                values_list = list(valid_values.items())
+                values_str = ", ".join([f"{k}={v}" for k, v in values_list])
+                line += f" [Values: {values_str}]"
+            
+            formatted_lines.append(line)
+        
+        return "\n".join(formatted_lines)
         
 
-    def select_tables(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def select_tables(self, state: BaseSQLState) -> BaseSQLState:
         """Select relevant tables based on the query"""
-        query = state["query"]
         
-        system_prompt = self.prompt_loader.load_system_prompt(
-            database=self.database_name
-        )
+        query = state.query
+        
+        try:
+            system_prompt = self.prompt_loader.load_system_prompt()
+        except FileNotFoundError as e:
+            logger.error(f"Failed to load system prompt: {e}")
+            state.error = "System prompt configuration error"
+            return state
         
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"""
             Given this user query: "{query}"
             
-            Which table(s) from the {self.database_name} database are needed?
-            Return ONLY a JSON list of table names, nothing else.
-            Example: ["table1", "table2"]
+            Analyze which table(s) from the {self.database_name.upper()} database are needed.
             
-            If no tables match, return: []
+            Return ONLY a JSON list of table IDs that are needed to answer this query.
+            Be specific and use the exact table IDs as defined in the database schema.
+            Return ONLY the JSON list with no further formatting, explanation, or markdown.
+            
+            Example response formats:
+            - For single table: ["Enaho01-2024-100"]
+            - For multiple tables: ["Enaho01-2024-100", "Enaho01-2024-200"]
+            - If no tables match: []
+            
+            Remember to consider:
+            1. The specific information requested in the query
+            2. Potential joins needed between tables
+            3. The business logic and relationships between tables
             """)
         ]
         
         for attempt in range(self.max_retries):
             try:
                 response = self.llm.invoke(messages)
-                table_list = json.loads(response.content.strip())
+                state.tools_executed.append("table_selection")
                 
-                if table_list:
-                    state["selected_tables"] = table_list
-                    logger.info(f"Selected tables: {table_list}")
+                content = response.content.strip()
+                # Remove markdown code blocks if present
+                if "```" in content:
+                    content = content.split("```")[1].replace("json", "").strip()
+                
+                table_list = json.loads(content)
+                
+                if isinstance(table_list, list) and table_list:
+                    state.selected_tables = table_list
+                    logger.info(f"Selected tables for {self.database_name}: {table_list}")
+                elif isinstance(table_list, list) and not table_list:
+                    state.error = "No relevant tables found for this query in the database"
                 else:
-                    state["error"] = "No relevant tables found for this query"
+                    state.error = "Invalid table selection format"
                     
                 return state
                 
+            except json.JSONDecodeError as e:
+                logger.warning(f"Table selection attempt {attempt + 1} failed - JSON decode error: {e}")
             except Exception as e:
                 logger.warning(f"Table selection attempt {attempt + 1} failed: {e}")
-                if attempt == self.max_retries - 1:
-                    state["error"] = "Could not determine relevant tables"
-                    return state
-                time.sleep(1)
-        
+                
+            if attempt == self.max_retries - 1:
+                state.error = "Could not determine relevant tables after multiple attempts"
+                        
         return state
     
     
-    def retrieve_columns(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def retrieve_columns(self, state: BaseSQLState) -> BaseSQLState:
         """Retrieve relevant columns from vector database"""
-        if state.get("error") or not state.get("selected_tables"):
+        
+        if state.error or not state.selected_tables:
             return state
             
-        query = state["query"]
-        tables = state["selected_tables"]
+        query = state.query
+        tables = state.selected_tables
         
         try:
-            columns = self.column_retriever.search(
+            result_json = self.column_retriever._run(
                 query=query,
-                tables=tables,
-                top_k=15
+                database=self.database_name,
+                selected_tables=tables
             )
             
-            if columns:
-                state["retrieved_columns"] = columns
-                state["vector_search_metadata"] = {
-                    "count": len(columns),
-                    "tables_searched": tables
+            state.tools_executed.append("column_retrieval")
+            result = json.loads(result_json)
+            
+            if result["success"] and result["columns"]:
+                state.retrieved_columns = result["columns"]
+                state.vector_search_metadata = {
+                    "count": len(result["columns"]),
+                    "tables_searched": tables,
+                    "database": self.database_name
                 }
+                logger.info(f"Retrieved {len(result['columns'])} columns for query")
             else:
-                state["error"] = "No relevant columns found - please rephrase your question"
+                error_msg = result.get("error", "No relevant columns found")
+                state.error = f"Column retrieval failed: {error_msg}"
+                logger.warning(f"Column retrieval unsuccessful: {error_msg}")
                 
         except Exception as e:
             logger.error(f"Column retrieval failed: {e}")
-            state["error"] = "Failed to retrieve column information"
+            state.error = "Failed to retrieve column information"
             
         return state
     
-    def validate_schema(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Quick validation that columns exist in actual schema"""
-        if state.get("error") or not state.get("retrieved_columns"):
-            return state
-            
-        columns = state["retrieved_columns"]
-        tables = state["selected_tables"]
-        
-        try:
-            # Simple validation - check if tables and main columns exist
-            valid = self.schema_validator.validate_columns(tables, columns)
-            
-            if not valid:
-                state["error"] = "Selected columns don't match database schema"
-                
-        except Exception as e:
-            logger.warning(f"Schema validation failed: {e}")
-            # Non-critical - continue anyway
-            
-        return state
-    
-    def generate_sql(self, state: Dict[str, Any]) -> Dict[str, Any]:
+
+    def generate_sql(self, state: BaseSQLState) -> BaseSQLState:
         """Generate SQL query using retrieved columns"""
-        if state.get("error"):
+        
+        if state.error or not state.retrieved_columns:
             return state
             
-        query = state["query"]
-        tables = state["selected_tables"]
-        columns = state["retrieved_columns"]
+        query = state.query
+        tables = state.selected_tables
+        columns = state.retrieved_columns
+        column_info = self._format_columns_for_prompt(columns)
         
-        # Build context for SQL generation
-        column_info = "\n".join([
-            f"- {col['column_name']} ({col['data_type']}): {col.get('description', '')}"
-            for col in columns
-        ])
+        sql_generation_prompt = f"""
+        Generate a BigQuery SQL query to answer the following question:
+        "{query}"
         
-        sql_prompt = self.prompt_loader.get_prompt(
-            "sql_generation",
-            query=query,
-            tables=tables,
-            columns=column_info,
-            database=self.database_name
-        )
+        Use these tables: {', '.join(tables)}
+        
+        Available columns:
+        {column_info}
+        
+        Requirements:
+        1. Use only the columns listed above
+        2. Generate valid BigQuery SQL syntax
+        3. Include appropriate JOINs if multiple tables are involved
+        4. Add a LIMIT clause if not specified (default: {self.sql_result_limit})
+        5. Handle NULL values appropriately
+        
+        Return ONLY the SQL query with no formatting, explanation, or markdown.
+        If you cannot generate a valid SQL query, do not attempt to guess - return an empty response.
+        """
         
         messages = [
-            SystemMessage(content="You are a SQL expert. Generate valid BigQuery SQL."),
-            HumanMessage(content=sql_prompt)
+            SystemMessage(content="You are an expert BigQuery SQL developer. Generate precise, efficient SQL queries."),
+            HumanMessage(content=sql_generation_prompt)
         ]
         
         for attempt in range(self.max_retries):
             try:
                 response = self.llm.invoke(messages)
-                sql = self._extract_sql(response.content)
+                sql = response.content
                 
                 if sql:
-                    state["generated_sql"] = sql
+                    if "LIMIT" not in sql.upper():
+                        sql = f"{sql.rstrip(';')} LIMIT {self.sql_result_limit};"
+                    
+                    state.generated_sql = sql
+                    state.tools_executed.append("sql_generation")
+                    logger.info(f"Generated SQL: {sql[:200]}...")
                     return state
                     
             except Exception as e:
                 logger.warning(f"SQL generation attempt {attempt + 1} failed: {e}")
                 
-        state["error"] = "Failed to generate valid SQL"
+        state.error = "Failed to generate valid SQL query"
         return state
     
-    def validate_sql(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Basic SQL validation for safety"""
-        if state.get("error") or not state.get("generated_sql"):
+
+    def validate_sql(self, state: BaseSQLState) -> BaseSQLState:
+        """Validate the generated SQL query"""
+        
+        if state.error or not state.generated_sql:
             return state
             
-        sql = state["generated_sql"].upper()
-        
-        # Simple safety checks
-        dangerous_keywords = ["DROP", "DELETE", "TRUNCATE", "INSERT", "UPDATE", "ALTER"]
-        
-        for keyword in dangerous_keywords:
-            if keyword in sql:
-                state["error"] = f"SQL contains forbidden operation: {keyword}"
-                state["sql_validation_passed"] = False
-                return state
-        
-        state["sql_validation_passed"] = True
-        return state
-    
-    def execute_query(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the SQL query"""
-        if state.get("error") or not state.get("sql_validation_passed"):
-            return state
-            
-        sql = state["generated_sql"]
-        
         try:
-            results = self.sql_executor.execute(sql)
-            state["query_results"] = results
+            result_json = self.schema_validator._run(
+                sql_query=state.generated_sql,
+                database=self.database_name
+            )
+            state.tools_executed.append("sql_validation")
+            result = json.loads(result_json)
             
+            validation = ValidationResult(
+                valid=result["valid"],
+                errors=result.get("errors", []),
+                warnings=result.get("warnings", []),
+                tables_checked=result.get("tables_checked", []),
+                table_validation=result.get("table_validation", {})
+            )
+            
+            state.sql_validation_result = validation
+            
+            if not validation.valid:
+                error_msg = "; ".join(validation.errors)
+                state.error = f"SQL validation failed: {error_msg}"
+                logger.warning(f"SQL validation failed: {error_msg}")
+            else:
+                logger.info("SQL query validated successfully")
+                
+        except Exception as e:
+            logger.error(f"SQL validation failed: {e}")
+            state.error = f"SQL validation error: {str(e)}"
+            
+        return state
+    
+
+    def execute_query(self, state: BaseSQLState) -> BaseSQLState:
+        """Execute the validated SQL query"""
+        
+        if state.error or not state.sql_validation_result or not state.sql_validation_result.valid:
+            return state
+            
+        try:
+            result_json = self.sql_executor._run(
+                sql_query=state.generated_sql,
+                database=self.database_name
+            )
+            state.tools_executed.append("sql_execution")
+            result = json.loads(result_json)
+            
+            if result["success"]:
+                state.query_results = result
+                logger.info(f"Query executed successfully on {self.database_name}")
+            else:
+                error_msg = result.get("error", "Unknown execution error")
+                error_type = result.get("error_type", "EXECUTION_ERROR")
+                state.error = f"Query execution failed ({error_type}): {error_msg[:200]}"
+                logger.error(f"Query execution failed: {error_msg}")
+                
         except Exception as e:
             logger.error(f"Query execution failed: {e}")
-            state["error"] = f"Query failed: {str(e)[:200]}"  # Truncate long errors
+            state.error = f"Query execution error: {str(e)[:200]}"
             
         return state
     
-    def format_answer(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Format the query results into a natural language answer"""
-        if state.get("error"):
-            # Return error as final answer
-            state["final_answer"] = f"I couldn't answer your question: {state['error']}"
-            return state
-            
-        if not state.get("query_results"):
-            state["final_answer"] = "The query returned no results."
-            return state
-            
-        query = state["query"]
-        results = state["query_results"]
+
+    def should_retry(self, state: BaseSQLState) -> str:
+        """
+        Determine if agent should retry SQL generation after execution failure.
+        Only called after execute_query step.
+        """
         
-        # Format results for LLM
-        if isinstance(results, list) and len(results) > 0:
-            # Limit results shown to LLM to avoid token limits
-            sample_results = results[:10]
-            result_text = str(sample_results)
-            total_count = len(results)
-        else:
-            result_text = str(results)
-            total_count = 1
+        if not state.error:
+            return "continue"
+        
+        if state.retry_count >= self.max_retries:
+            logger.warning(f"Max retries ({self.max_retries}) exceeded for query: {state.query[:100]}")
+            return "continue"  # Go to format_answer with the error
+        
+        
+        logger.info(f"Retrying query (attempt {state.retry_count + 1}/{self.max_retries})")
+        
+        state.retry_count += 1   
+        state.error = None     
+        state.generated_sql = None
+        state.sql_validation_result = None
+        state.query_results = None
+        
+        return "retry"
+    
+
+    def format_answer(self, state: BaseSQLState) -> BaseSQLState:
+        """Format the query results into a natural language answer"""
+
+        state.retry_count = 0
+        
+        if state.error:
+            state.final_answer = f"I encountered an issue while processing your query: {state.error}"
+            return state
             
+        if not state.query_results or not state.query_results.get("results"):
+            state.final_answer = "The query executed successfully but returned no results."
+            return state
+            
+        query = state.query
+        generated_sql = state.generated_sql
+        results = state.query_results.get("results", "")
+            
+        format_prompt = f"""
+        Convert these SQL query results into a clear, natural language answer for the user's question.
+        
+        User Question: {query}
+        Generated SQL: {generated_sql}
+        SQL Query Results: {results}
+        
+        Instructions:
+        1. Provide a direct answer to the user's question
+        2. Include specific numbers and data points from the results
+        3. Format large numbers with appropriate separators
+        4. If the results show a list, present it clearly
+        5. If there are many results, summarize the key findings
+        6. Be concise but complete
+        
+        Answer:
+        """
+        
         messages = [
-            SystemMessage(content="Convert SQL results into a clear, natural language answer."),
-            HumanMessage(content=f"""
-            User question: {query}
-            
-            SQL Results (showing {min(10, total_count)} of {total_count} rows):
-            {result_text}
-            
-            Provide a clear, concise answer to the user's question based on these results.
-            """)
+            SystemMessage(content="You are a data analyst who explains query results clearly and concisely."),
+            HumanMessage(content=format_prompt)
         ]
         
         try:
             response = self.llm.invoke(messages)
-            state["final_answer"] = response.content
+            state.final_answer = response.content
+            state.tools_executed.append("answer_formatting")
+            logger.info("Answer formatted successfully")
         except Exception as e:
             logger.error(f"Answer formatting failed: {e}")
-            state["final_answer"] = f"Query executed successfully but couldn't format the answer. Raw results: {result_text[:500]}"
+            state.final_answer = f"Here are the query results:\n\n{results}"
             
         return state
     
-    def should_retry(self, state: Dict[str, Any]) -> str:
-        """Determine if we should retry or end"""
-        if state.get("error") and "rephrase" in state["error"].lower():
-            return "needs_clarification"
-        elif state.get("final_answer"):
-            return "success"
-        else:
-            return "failed"
     
-    def create_graph(self, state_class):
+    def create_graph(self, state_class: type) -> StateGraph:
         """Create the LangGraph workflow"""
         graph = StateGraph(state_class)
         
-        # Add nodes
         graph.add_node("select_tables", self.select_tables)
         graph.add_node("retrieve_columns", self.retrieve_columns)
-        graph.add_node("validate_schema", self.validate_schema)
         graph.add_node("generate_sql", self.generate_sql)
         graph.add_node("validate_sql", self.validate_sql)
         graph.add_node("execute_query", self.execute_query)
         graph.add_node("format_answer", self.format_answer)
         
-        # Linear flow with error handling
         graph.set_entry_point("select_tables")
         
-        # Main flow
         graph.add_edge("select_tables", "retrieve_columns")
-        graph.add_edge("retrieve_columns", "validate_schema")
-        graph.add_edge("validate_schema", "generate_sql")
+        graph.add_edge("retrieve_columns", "generate_sql")
         graph.add_edge("generate_sql", "validate_sql")
         graph.add_edge("validate_sql", "execute_query")
-        graph.add_edge("execute_query", "format_answer")
-        
-        # Conditional ending
         graph.add_conditional_edges(
-            "format_answer",
+            "execute_query",
             self.should_retry,
             {
-                "success": END,
-                "failed": END,
-                "needs_clarification": END  # Router will handle clarification
+                "retry": "select_tables",
+                "continue": "format_answer"
             }
         )
+        graph.add_edge("format_answer", END)
         
-        return graph.compile()
-    
-    def _extract_sql(self, text: str) -> Optional[str]:
-        """Extract SQL from LLM response"""
-        # Look for SQL in code blocks
-        import re
-        
-        # Try to find SQL in markdown code blocks
-        sql_pattern = r'```sql\n(.*?)\n```'
-        match = re.search(sql_pattern, text, re.DOTALL | re.IGNORECASE)
-        
-        if match:
-            return match.group(1).strip()
-            
-        # Try generic code blocks
-        code_pattern = r'```\n(.*?)\n```'
-        match = re.search(code_pattern, text, re.DOTALL)
-        
-        if match:
-            return match.group(1).strip()
-            
-        # If no code blocks, assume the whole response is SQL
-        # (but remove any obvious non-SQL lines)
-        lines = text.strip().split('\n')
-        sql_lines = [l for l in lines if not l.startswith('#') and not l.startswith('--')]
-        
-        if sql_lines:
-            return '\n'.join(sql_lines)
-            
-        return None
+        return graph.compile(
+            # checkpointer=self.checkpointer
+        )

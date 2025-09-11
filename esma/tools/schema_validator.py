@@ -131,7 +131,11 @@ class SchemaValidator(BaseTool):
             dry_run_query = f"SELECT * FROM ({sql_query}) AS validation_check LIMIT 0"
             _ = client.db.run(dry_run_query)
         
-            return {"valid": True, "errors": [], "warnings": []}
+            return {
+                "valid": True, 
+                "errors": [], 
+                "warnings": []
+            }
             
         except Exception as e:
             error_msg = str(e)

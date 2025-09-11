@@ -1,0 +1,9 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "esma.agents.enaho:agent"
+  },
+  "env": ".env",
+  "python_version": "3.13",
+  "pip_installer": "uv"
+}

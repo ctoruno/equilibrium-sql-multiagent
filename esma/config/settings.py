@@ -16,12 +16,12 @@ class Settings(BaseSettings):
     }
 
     # SQL Settings
-    sql_result_limit: int = 5000
+    sql_result_limit: int = 500
     max_retries: int = 3
     
     # Pinecone & VoyageAI
     similarity_threshold: float = 0.25
-    max_column_retrieval_results: int = 15
+    max_column_retrieval_results: int = 7
     max_docs_retrieval_results: int = 50
     pc_indexes: Dict[str, str] = {
         "enaho": "enaho-2024",
