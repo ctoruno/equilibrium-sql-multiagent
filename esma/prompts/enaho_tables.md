@@ -3,17 +3,17 @@ The 2024 National Household Survey (ENAHO), conducted by the National Institute 
 
 ## Tables
 The enaho-2024 database is composed by 11 different tables:
-- Enaho01-2024-100
-- Enaho01-2024-200
-- Enaho01-2024-601
-- Enaho01-2024-603
-- Enaho01-2024-604
-- Enaho01-2024-605
-- Enaho01-2024-609
-- Enaho01-2024-612
-- Enaho01A-2024-300
-- Enaho01A-2024-400
-- Enaho01A-2024-500
+- ENAHO01-2024-100
+- ENAHO01-2024-200
+- ENAHO01-2024-601
+- ENAHO01-2024-603
+- ENAHO01-2024-604
+- ENAHO01-2024-605
+- ENAHO01-2024-609
+- ENAHO01-2024-612
+- ENAHO01A-2024-300
+- ENAHO01A-2024-400
+- ENAHO01A-2024-500
 
 ### ENAHO01-2024-100
 **Module Name**: Características de la Vivienda y del Hogar (Módulo 100)
@@ -34,7 +34,7 @@ Core housing and household characteristics module capturing detailed information
 - Utilities & Services: Telecommunications (phone, internet, cable TV), cooking fuel types, lighting sources
 - Household Expenses: Monthly expenditures on utilities, fuel, and communication services by source
 
-### Enaho01-2024-200
+### ENAHO01-2024-200
 **Module Name**: Características de los Miembros del Hogar (Módulo 200)
 
 **Description:**
@@ -53,7 +53,7 @@ Individual demographics and basic labor activity module capturing personal chara
 - Child Labor Assessment: Hazardous task classification based on activity type and time commitment
 - Module Assignments: Eligibility indicators for education, health, and employment survey modules
 
-### Enaho01-2024-601
+### ENAHO01-2024-601
 **Module Name**: Gastos del Hogar
 
 **Description:**
@@ -72,7 +72,7 @@ Household expenditure module capturing detailed food and non-food consumption pa
 - Expenditure Analysis: Both raw and processed monetary values
 - Product Classification: Standardized product codes and free/subsidized good indicators
 
-### Enaho01-2024-603
+### ENAHO01-2024-603
 **Module Name**: Mantenimiento de la Vivienda
 
 **Description:**
@@ -91,7 +91,7 @@ Household maintenance and cleaning products expenditure module capturing acquisi
 - Product Categories: Cleaning supplies, maintenance tools, household services, personal care items
 - Cost Analysis: Both raw and processed monetary estimates
 
-### Enaho01-2024-604
+### ENAHO01-2024-604
 **Module Name**: Transportes y Comunicaciones
 
 **Description:**
@@ -111,7 +111,7 @@ Transportation and communications expenditure module capturing household spendin
 - Acquisition Methods: Purchase, self-production, in-kind payments, gifts, institutional donations, other sources
 - Cost Analysis: Purchase locations, total expenditure, and estimated market values for non-purchased services
 
-### Enaho01-2024-605
+### ENAHO01-2024-605
 **Module Name**: Servicios a la Vivienda
 
 **Description:**
@@ -130,7 +130,7 @@ Housing services expenditure module capturing household spending on property-rel
 - Payment Methods: Direct household payments, gifts from other households, rent-inclusive services, other arrangements
 - Cost Analysis: Monthly service costs and estimated market values for non-paid services
 
-### Enaho01-2024-609
+### ENAHO01-2024-609
 **Module Name**: Gastos de Transferencias
 
 **Description:**
@@ -149,7 +149,7 @@ Transfer payments and financial obligations module capturing household expenditu
 - Government Obligations: Direct taxes, mandatory insurance payments
 - Cost Analysis: Total expenditure amounts with processed monetary estimates
 
-### Enaho01-2024-612
+### ENAHO01-2024-612
 **Module Name**: Equipamiento del Hogar
 
 **Description:**
@@ -168,7 +168,7 @@ Household durable goods inventory module capturing ownership, quantities, usage 
 - Asset Details: Quantity owned, primary usage, acquisition timing
 - Economic Valuation: Original purchase costs, current market value estimates, and processed monetary values
 
-### Enaho01A-2024-300
+### ENAHO01A-2024-300
 **Module Name**: Educación
 
 **Description:**
@@ -187,7 +187,7 @@ Individual education module capturing educational attainment, school enrollment,
 - Technology Access & Skills: Internet usage patterns, locations of access, devices used, digital activities performed, computer literacy skills assessment
 - Vocational Training: Technical education programs, duration, certification details
 
-### Enaho01A-2024-400
+### ENAHO01A-2024-400
 **Module Name**: Salud
 
 **Description:**
@@ -207,7 +207,7 @@ Comprehensive health and demographic module capturing health status, disability 
 - Health Status & Recent Conditions: Chronic disease presence and recent 4-week health episodes including symptoms, illnesses, chronic disease relapses, accidents, and COVID-19 symptoms
 - Educational Background: Highest level of educational attainment achieved
 
-### Enaho01A-2024-500
+### ENAHO01A-2024-500
 **Module Name**: Empleo e Ingreso
 
 **Description:**

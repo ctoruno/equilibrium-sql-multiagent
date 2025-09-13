@@ -22,4 +22,5 @@ def create_enaho_agent():
     agent = ENAHOAgent()
     return agent.create_graph()
 
+
 agent = create_enaho_agent()

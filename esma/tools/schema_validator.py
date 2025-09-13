@@ -128,7 +128,8 @@ class SchemaValidator(BaseTool):
         This will catch column errors and syntax issues.
         """
         try:
-            dry_run_query = f"SELECT * FROM ({sql_query}) AS validation_check LIMIT 0"
+            clean_query = sql_query.rstrip(";").strip()
+            dry_run_query = f"SELECT * FROM ({clean_query}) AS validation_check LIMIT 0"
             _ = client.db.run(dry_run_query)
         
             return {

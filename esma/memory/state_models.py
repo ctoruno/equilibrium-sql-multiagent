@@ -39,7 +39,7 @@ class BaseSQLState(BaseModel):
     
     messages: Annotated[Sequence[BaseMessage], add_messages]
     conversation_id: Optional[str] = None
-    query: str
+    query: str = ""
     
     selected_tables: List[str] = Field(default_factory=list)
     retrieved_columns: List[Dict[str, Any]] = Field(default_factory=list)

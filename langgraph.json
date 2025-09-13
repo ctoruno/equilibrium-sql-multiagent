@@ -1,7 +1,9 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "esma.agents.enaho:agent"
+    "enaho-agent": "esma.agents.enaho:agent",
+    "enaho-react-agent": "esma.agents.enaho_ReAct:agent",
+    "geih-agent": "esma.agents.geih:agent"
   },
   "env": ".env",
   "python_version": "3.13",

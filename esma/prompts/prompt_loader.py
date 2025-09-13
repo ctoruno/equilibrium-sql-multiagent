@@ -31,3 +31,26 @@ class PromptLoader:
             raise FileNotFoundError(f"Template file not found: {template_file}")
         
         return template_file.read_text(encoding="utf-8")
+    
+
+    def load_table_descriptions(self) -> str:
+        """
+        Load table descriptions for specified database
+
+        Args:
+            database: Database name (e.g., 'enaho-2024', 'geih-2024')
+
+        Returns:
+            Content of the markdown file as string
+
+        Raises:
+            FileNotFoundError: If template file doesn't exist
+            ValueError: If database parameter is invalid
+        """
+
+        template_file = self.templates_dir / f"{self.database}_tables.md"
+
+        if not template_file.exists():
+            raise FileNotFoundError(f"Template file not found: {template_file}")
+
+        return template_file.read_text(encoding="utf-8")

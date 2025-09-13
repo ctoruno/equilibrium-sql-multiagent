@@ -4,7 +4,7 @@ Base SQL Agent for ENAHO and GEIH specialized agents
 import json
 import logging
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph, START, END
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -74,36 +74,48 @@ class BaseSQLAgent:
     def select_tables(self, state: BaseSQLState) -> BaseSQLState:
         """Select relevant tables based on the query"""
         
+        last_message = state.messages[-1]
+        state.query = last_message.content
         query = state.query
         
         try:
-            system_prompt = self.prompt_loader.load_system_prompt()
+            table_descriptions = self.prompt_loader.load_table_descriptions()
         except FileNotFoundError as e:
-            logger.error(f"Failed to load system prompt: {e}")
-            state.error = "System prompt configuration error"
+            logger.error(f"Failed to load table descriptions: {e}")
+            state.error = "Table descriptions configuration error"
             return state
         
         messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=f"""
-            Given this user query: "{query}"
-            
-            Analyze which table(s) from the {self.database_name.upper()} database are needed.
-            
-            Return ONLY a JSON list of table IDs that are needed to answer this query.
-            Be specific and use the exact table IDs as defined in the database schema.
-            Return ONLY the JSON list with no further formatting, explanation, or markdown.
-            
-            Example response formats:
-            - For single table: ["Enaho01-2024-100"]
-            - For multiple tables: ["Enaho01-2024-100", "Enaho01-2024-200"]
-            - If no tables match: []
-            
-            Remember to consider:
-            1. The specific information requested in the query
-            2. Potential joins needed between tables
-            3. The business logic and relationships between tables
-            """)
+            SystemMessage(
+                content=f"""
+                You are a SQL expert for the {self.database_name} database. Given a user query,
+                identify the relevant tables needed to answer it based on the database schema.
+
+                Here are the table descriptions:
+                {table_descriptions}
+                """
+            ),
+            HumanMessage(
+                content=f"""
+                Given this user query: "{query}"
+                
+                Analyze which table(s) from the {self.database_name.upper()} database are needed.
+                
+                Return ONLY a JSON list of table IDs that are needed to answer this query.
+                Be specific and use the exact table IDs as defined in the database schema.
+                Return ONLY the JSON list with no further formatting, explanation, or markdown.
+                
+                Example response formats:
+                - For single table: ["Enaho01-2024-100"]
+                - For multiple tables: ["Enaho01-2024-100", "Enaho01-2024-200"]
+                - If no tables match: []
+                
+                Remember to consider:
+                1. The specific information requested in the query
+                2. Potential joins needed between tables
+                3. The business logic and relationships between tables
+                """
+            )
         ]
         
         for attempt in range(self.max_retries):
@@ -390,9 +402,8 @@ class BaseSQLAgent:
         graph.add_node("validate_sql", self.validate_sql)
         graph.add_node("execute_query", self.execute_query)
         graph.add_node("format_answer", self.format_answer)
-        
-        graph.set_entry_point("select_tables")
-        
+
+        graph.add_edge(START, "select_tables")        
         graph.add_edge("select_tables", "retrieve_columns")
         graph.add_edge("retrieve_columns", "generate_sql")
         graph.add_edge("generate_sql", "validate_sql")
