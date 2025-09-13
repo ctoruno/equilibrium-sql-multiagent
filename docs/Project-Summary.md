@@ -6,7 +6,7 @@ Chatbot system that can answer complex user questions by querying two separate, 
 ## Technical Stack
 - **Databases**: Google BigQuery
 - **AI Framework**: LangChain + LangGraph for agent orchestration
-- **LLMs**: Gemini for agents
+- **LLMs**: Gemini/GPT for agents
 - **Embeddings**: VoyageAI (voyage-3.5 model)
 - **Vector Database**: Pinecone with separate indexes per database
 - **Architecture**: Multi-agent system with separate agents for each database
@@ -14,14 +14,27 @@ Chatbot system that can answer complex user questions by querying two separate, 
 ## Multi-Agent Architecture with LangGraph
 - **Multi-Agent Orchestration**: Specialized agents for ENAHO and GEIH databases with intelligent routing
 
+### Linear Flow Diagram
 ```
 User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → Table Selection (System Prompt) → Column Retrieval (Vector DB) → SQL Generation → Execution → Response
+```
+
+### ReAct Flow Diagram
+```
+User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → ReAct Loop → Format Answer Node
+                                                                  ↓
+                                                        [Table Description Tool]
+                                                        [Column Retrieval Tool]
+                                                        [SQL Generation Tool]
+                                                        [Validation Tool]
+                                                        [Execution Tool]
+                                                        [Documentation Search Tool]
 ```
 
 ![](esma-flow-diagram.png)
 
 ## Agent Design Strategy
-- **System Prompt**: Contains table descriptions and business logic for immediate table selection
+- **System Prompt**: Contains table descriptions and business logic for immediate table selection (linar flow)
 - **Vector Retrieval**: Query column namespace filtered by selected table(s) for relevant columns
 - **Documentation Access**: Specialized agents can query documentation namespace for methodology clarifications
 - **Token Management**: Intelligent message trimming and summarization to maintain context while respecting LLM token limits
