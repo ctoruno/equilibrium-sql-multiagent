@@ -44,3 +44,19 @@ User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → ReAct Loop 
 - **Single Universal User**: The application operates with a single user model - no individual user authentication or personalized data management
 - **Restricted Access**: Access will be limited to authorized users only, though without individual user account management
 - **Prototype Status**: This is a proof-of-concept implementation designed to validate the multi-agent SQL generation approach
+
+## Install in Development Mode
+
+1. Install package in development mode:
+
+```bash
+uv pip install -e .
+```
+
+2. Verify Installation
+
+```bash
+uv pip show esma
+uv pip list
+uv run python -c "import esma; print('esma imported successfully')"
+```

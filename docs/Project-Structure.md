@@ -2,51 +2,63 @@
 
 ```
 equilibrium-sql-agent/
-├── pyproject.toml
-├── README.md
-├── .env.example
-├── .gitignore
+├── docs
+│   ├── Project-Structure.md
+│   └── Project-Summary.md
 ├── esma/
 │   ├── __init__.py
 │   ├── agents/
 │   │   ├── __init__.py
-│   │   ├── router.py                # Router agent logic
-│   │   ├── enaho.py                 # ENAHO specialist agent
-│   │   ├── geih.py                  # GEIH specialist agent
-│   │   └── base.py                  # Base agent class for shared functionality
+│   │   ├── base.py                  # Base agent class for shared functionality (linear flow)
+│   │   ├── baseReAct.py             # Base ReACt agent class for shared functionality
+│   │   ├── enaho_ReAct.py           # ENAHO specialist ReAct agent
+│   │   ├── enaho.py                 # ENAHO specialist agent (linear flow)
+│   │   ├── geih_ReAct.py            # GEIH specialist ReAct agent
+│   │   ├── geih.py                  # GEIH specialist agent (linear flow)
+│   │   └── router.py                # Router agent logic
 │   ├── config/
 │   │   ├── __init__.py
-│   │   └── settings.py              # Environment variables, API keys, BigQuery/Pinecone connection configs
+│   │   └── settings.py              # Environment variables, API keys, connection configs
 │   ├── prompts/
 │   │   ├── __init__.py
 │   │   ├── prompt_loader.py         # Loader class
-│   │   ├── templates/               # Markdown prompt files
-│   │   │   ├── router.md            
-│   │   │   ├── enaho_system.md      
-│   │   │   ├── geih_system.md       
-│   │   │   ├── sql_generation.md    # Shared SQL generation template
-│   │   │   ├── error_handling.md    # Error recovery prompts
-│   │   │   └── clarification.md     # User clarification templates
-│   │   └── examples/                # Few-shot examples
-│   │   │   ├── enaho_queries.md     
-│   │   │   └── geih_queries.md
+│   │   ├── enaho_system.md
+│   │   ├── enaho_tables.md
+│   │   ├── geih_system.md
+│   │   └── geih_tables.md
 │   ├── memory/
 │   │   ├── __init__.py
-│   │   ├── conversation_manager.py  # Main orchestrator
-│   │   ├── persistence.py           # BigQuery storage (Long-term Memory Persistance)
-│   │   ├── trimmer.py               # Token management & summarization
-│   │   └── state_models.py          # Pydantic models for graph states
+│   │   └── state_models.py          # Pydantic models for graph states (linear flow)
 │   ├── tools/
 │   │   ├── __init__.py
-│   │   ├── column_retriever.py      # Pinecone vector search for columns
-│   │   ├── schema_validator.py      # BigQuery INFORMATION_SCHEMA queries
-│   │   └── sql_executor.py          # Execute final SQL
+│   │   ├── column_retriever.py
+│   │   ├── schema_validator.py
+│   │   ├── sql_executor.py
+│   │   └── table_descriptions_retriever.py
 │   └── utils/
 │       ├── __init__.py
-│       └── bigquery_client.py       # BigQuery connection wrapper
+│       └── bigquery_client.py
 └── scripts/
-    ├── bigquery_setup
-    │   └── data_upload_pipeline.py
-    └── knowledge_base
-        └── build_knowledge_base.py
+│   ├── bigquery_setup
+│   │   └── data_upload_pipeline.py
+│   ├── data_preprocessing
+│   ├── documentation_preparation
+│   │   └── parse_documentation.py
+│   ├── knowledge_base
+│   │   └── build_knowledge_base.py
+│   └── notebooks
+│       ├── testing-gcs.ipynb
+│       ├── testing-gemini.ipynb
+│       ├── testing-sql-tools.ipynb
+│       └── testing.ipynb
+├── tests
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_bigquery_client.py
+│   ├── test_column_retriever.py
+│   ├── test_schema_validator.py
+│   └── test_sql_executor.py
+├── langgraph.json
+├── pyproject.toml
+└── README.md
 ```
