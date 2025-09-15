@@ -60,3 +60,9 @@ uv pip show esma
 uv pip list
 uv run python -c "import esma; print('esma imported successfully')"
 ```
+
+3. Run LangGraph Studio without auto-reloading:
+
+```bash
+langgraph dev --no-reload
+```
