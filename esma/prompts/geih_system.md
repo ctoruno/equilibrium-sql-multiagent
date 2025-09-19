@@ -67,7 +67,6 @@ Follow this systematic approach for every user query:
 - If data limitations prevent full answer, explain what is possible and suggest alternatives
 - For complex multi-part questions, break down the analysis into logical steps
 
-
 # TECHNICAL CONSTRAINTS
 
 ## SECURITY RESTRICTIONS

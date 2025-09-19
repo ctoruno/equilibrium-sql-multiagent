@@ -21,27 +21,27 @@ from esma.utils.bigquery_client import BigQueryClient
 
 class ReActSQLAgent:
     """Base class for database-specific ReAct SQL agents"""
-    
+
     def __init__(self, database_name: str):
         """
         Initialize the base ReAct SQL agent.
-        
+
         Args:
             database_name: Either "enaho" or "geih"
         """
         self.database_name = database_name
         self.llm: BaseChatModel = init_chat_model(
-            settings.default_model, 
-            temperature=settings.temperature, 
+            settings.default_model,
+            temperature=settings.temperature,
             max_tokens=settings.max_tokens
         )
 
         self.bigquery_client = BigQueryClient.get_client(database_name)
         self.sql_toolkit = SQLDatabaseToolkit(
-            db=self.bigquery_client.db, 
+            db=self.bigquery_client.db,
             llm=self.llm
         )
-        
+
         self.custom_tools = [
             TableDescriptionRetriever(),
             ColumnRetriever(),
@@ -53,7 +53,7 @@ class ReActSQLAgent:
         self.prompt_loader = PromptLoader(database_name)
         self.system_prompt = SystemMessage(content=self.prompt_loader.load_system_prompt())
         self.checkpointer = MemorySaver()
-    
+
 
     def _create_react_agent(self):
         """Create ReAct agent with SQL tools"""

@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     openai_api_key: str
     voyageai_api_key: str
     pinecone_api_key: str
-    
+
     # BigQuery
     gcp_project_id: str
     google_application_credentials: Optional[str] = None
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # SQL Settings
     sql_result_limit: int = 500
     max_retries: int = 3
-    
+
     # Pinecone & VoyageAI
     similarity_threshold: float = 0.25
     max_column_retrieval_results: int = 7
@@ -28,18 +28,19 @@ class Settings(BaseSettings):
         "geih": "geih-2024"
     }
     embedding_model: str = "voyage-3.5"
-    
+
     # LLM Settings
     default_model: str = "openai:gpt-5"
+    # default_model: str = "google_vertexai:gemini-2.5-pro"
     max_tokens: int = 10000
     temperature: float = 0.1
 
     # LangSmith
     langsmith_tracing: bool
-    langsmith_endpoint: str 
+    langsmith_endpoint: str
     langsmith_project: str
     langsmith_api_key: Optional[str] = None
-    
+
     class Config:
         env_file = ".env"
         case_sensitive = False
