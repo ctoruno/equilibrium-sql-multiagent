@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Pinecone & VoyageAI
     similarity_threshold: float = 0.25
     max_column_retrieval_results: int = 7
-    max_docs_retrieval_results: int = 50
+    max_docs_retrieval_results: int = 25
     pc_indexes: Dict[str, str] = {
         "enaho": "enaho-2024",
         "geih": "geih-2024"
@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     embedding_model: str = "voyage-3.5"
 
     # LLM Settings
-    default_model: str = "openai:gpt-5"
-    # default_model: str = "google_vertexai:gemini-2.5-pro"
+    # default_model: str = "openai:gpt-5"
+    default_model: str = "google_vertexai:gemini-2.5-pro"
     max_tokens: int = 10000
     temperature: float = 0.1
 

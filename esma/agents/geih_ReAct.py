@@ -1,12 +1,11 @@
 """
 GEIH Specialist ReAct Agent
 """
-from esma.agents.baseReAct import ReActSQLAgent
+from esma.agents.baseReAct import ReActAgent
 
+class GEIHAgent(ReActAgent):
+    """Specialized ReAct agent for GEIH database queries"""
 
-class GEIHAgent(ReActSQLAgent):
-    """Specialized ReAct ReAct agent for GEIH database queries"""
-    
     def __init__(self):
         """Initialize GEIH ReAct agent with database-specific configuration"""
         super().__init__(database_name="geih")
@@ -17,9 +16,6 @@ class GEIHAgent(ReActSQLAgent):
 
 
 def create_geih_agent():
-    """Create and return a compiled ENAHO ReAct agent graph"""
+    """Create and return a compiled GEIH ReAct agent graph"""
     agent = GEIHAgent()
     return agent.create_graph()
-
-
-agent = create_geih_agent()

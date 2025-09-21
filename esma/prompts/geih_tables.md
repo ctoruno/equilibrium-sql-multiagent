@@ -12,6 +12,8 @@ The geih-2024 database is composed by 8 different tables:
 - DBF_GECH_6_8
 - DBF_GECH_6_9
 
+**⚠️ IMPORTANT STATISTICAL NOTE**: GEIH is conducted monthly throughout the year. When generating annual estimates or comparisons, the expansion factors (FEX_C18) represent monthly population weights. For annual population estimates, divide results by 12 after applying expansion factors to avoid overestimating the annual population size.
+
 ### DBF_GECH_6_5
 **Module Name**: Fuerza de Trabajo
 
@@ -169,3 +171,41 @@ Housing conditions, household characteristics, public services access, and finan
 - Water & Energy Sources: Primary water source for human consumption, cooking fuel types, food preparation areas
 - Housing Tenure: Property ownership status, mortgage payments, estimated property values, rental costs
 - Financial Inclusion: Household access to financial products, banking relationships and credit access patterns
+
+# Mapping for Department Codes
+
+| Code | Department                                                    |
+|------|---------------------------------------------------------------|
+| 05   | Antioquia                                                     |
+| 08   | Atlántico                                                     |
+| 11   | Bogotá, D.C.                                                  |
+| 13   | Bolívar                                                       |
+| 15   | Boyacá                                                        |
+| 17   | Caldas                                                        |
+| 18   | Caquetá                                                       |
+| 19   | Cauca                                                         |
+| 20   | Cesar                                                         |
+| 23   | Córdoba                                                       |
+| 25   | Cundinamarca                                                  |
+| 27   | Chocó                                                         |
+| 41   | Huila                                                         |
+| 44   | La Guajira                                                    |
+| 47   | Magdalena                                                     |
+| 50   | Meta                                                          |
+| 52   | Nariño                                                        |
+| 54   | Norte de Santander                                            |
+| 63   | Quindío                                                       |
+| 66   | Risaralda                                                     |
+| 68   | Santander                                                     |
+| 70   | Sucre                                                         |
+| 73   | Tolima                                                        |
+| 76   | Valle del Cauca                                               |
+| 81   | Arauca                                                        |
+| 85   | Casanare                                                      |
+| 86   | Putumayo                                                      |
+| 88   | Archipiélago de San Andrés, Providencia y Santa Catalina      |
+| 91   | Amazonas                                                      |
+| 94   | Guainía                                                       |
+| 95   | Guaviare                                                      |
+| 97   | Vaupés                                                        |
+| 99   | Vichada                                                       |

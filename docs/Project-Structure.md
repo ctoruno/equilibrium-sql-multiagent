@@ -9,29 +9,24 @@ equilibrium-sql-agent/
 │   ├── __init__.py
 │   ├── agents/
 │   │   ├── __init__.py
-│   │   ├── base.py                  # Base agent class for shared functionality (linear flow)
 │   │   ├── baseReAct.py             # Base ReACt agent class for shared functionality
-│   │   ├── enaho_ReAct.py           # ENAHO specialist ReAct agent
-│   │   ├── enaho.py                 # ENAHO specialist agent (linear flow)
-│   │   ├── geih_ReAct.py            # GEIH specialist ReAct agent
-│   │   ├── geih.py                  # GEIH specialist agent (linear flow)
-│   │   └── router.py                # Router agent logic
+│   │   └── esma.py                  # ESMA class to initialize agents based on user input
 │   ├── config/
 │   │   ├── __init__.py
 │   │   └── settings.py              # Environment variables, API keys, connection configs
 │   ├── prompts/
 │   │   ├── __init__.py
 │   │   ├── prompt_loader.py         # Loader class
-│   │   ├── enaho_system.md
+│   │   ├── general_system.md
 │   │   ├── enaho_tables.md
-│   │   ├── geih_system.md
 │   │   └── geih_tables.md
 │   ├── memory/
 │   │   ├── __init__.py
-│   │   └── state_models.py          # Pydantic models for graph states (linear flow)
+│   │   └── state_models.py          # Pydantic models for graph states and memory
 │   ├── tools/
 │   │   ├── __init__.py
 │   │   ├── column_retriever.py
+│   │   ├── schema_gatherer.py
 │   │   ├── schema_validator.py
 │   │   ├── sql_executor.py
 │   │   └── table_descriptions_retriever.py
@@ -47,10 +42,6 @@ equilibrium-sql-agent/
 │   ├── knowledge_base
 │   │   └── build_knowledge_base.py
 │   └── notebooks
-│       ├── testing-gcs.ipynb
-│       ├── testing-gemini.ipynb
-│       ├── testing-sql-tools.ipynb
-│       └── testing.ipynb
 ├── tests
 │   ├── __init__.py
 │   ├── conftest.py

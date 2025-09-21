@@ -174,7 +174,7 @@ class ColumnRetriever(BaseTool):
             vector=query_embedding,
             top_k=self._max_results,
             namespace=namespace,
-            filters=table_filter,
+            filter=table_filter,
             include_metadata=True
         )
         

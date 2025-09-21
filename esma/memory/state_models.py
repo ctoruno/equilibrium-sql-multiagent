@@ -6,24 +6,8 @@ from typing import List, Dict, Annotated, Sequence, Optional, Any
 from langchain_core.messages import BaseMessage
 from langgraph.graph import add_messages
 from pydantic import BaseModel, Field
-from enum import Enum
 
-
-class RouteTarget(str, Enum):
-    """Where to route the query - strict options"""
-    ENAHO = "enaho-2024"
-    GEIH = "geih-2024"
-    DIRECT_ANSWER = "direct_answer"
-
-
-class RouterState(BaseModel):
-    """Simple state for router decisions"""
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-    current_query: str
-    route_target: Optional[RouteTarget] = None
-    confidence_score: float = Field(default=0.0, ge=0.0, le=1.0)
-    conversation_id: Optional[str] = None
-
+##### Models for Linear Flow Agents #####
 
 class ValidationResult(BaseModel):
     """Schema validation results"""
@@ -55,13 +39,8 @@ class BaseSQLState(BaseModel):
     retry_count: int = 0
 
 
-class ENAHOState(BaseSQLState):
-    """ENAHO specialist agent state"""
-    pass
+##### Models for ReAct Agents #####
 
-class GEIHState(BaseSQLState):
-    """GEIH specialist agent state"""
-    pass
-
-
-
+class  BaseReActState(BaseModel):
+    messages: Annotated[List[BaseMessage], add_messages] = []
+    summary: str = ""

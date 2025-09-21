@@ -15,7 +15,7 @@ class PromptLoader:
         Load system prompt for specified database
         
         Args:
-            database: Database name (e.g., 'enaho-2024', 'geih-2024')
+            database: Database name (e.g., 'enaho-2024', 'geih-2024', 'general')
             
         Returns:
             Content of the markdown file as string
