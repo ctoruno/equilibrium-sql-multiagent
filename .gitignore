@@ -14,3 +14,4 @@ client_secret_google.json
 .env
 .DS_Store
 equilibrium-sql-multiagent.json
+.vscode/settings.json
