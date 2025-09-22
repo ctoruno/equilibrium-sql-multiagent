@@ -460,6 +460,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "sqlalchemy" },
     { name = "sqlalchemy-bigquery" },
+    { name = "tiktoken" },
     { name = "voyageai" },
 ]
 
@@ -499,6 +500,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
     { name = "sqlalchemy-bigquery", specifier = ">=1.15.0" },
+    { name = "tiktoken", specifier = ">=0.11.0" },
     { name = "voyageai", specifier = ">=0.3.4" },
 ]
 

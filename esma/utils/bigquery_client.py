@@ -61,10 +61,13 @@ class BigQueryClient:
 
         if self._engine is None:
             connection_string = f"bigquery://{settings.gcp_project_id}/{self.dataset_id}"
-            self._engine = create_engine(
-                connection_string,
-                credentials_path=settings.google_application_credentials
-            )
+            if settings.google_application_credentials:  # Only for local development
+                self._engine = create_engine(
+                    connection_string,
+                    credentials_path=settings.google_application_credentials
+                )
+            else:  # For Cloud Run - uses default credentials
+                self._engine = create_engine(connection_string)
             logger.info(f"SQLAlchemy engine created for {self.database_name} ({self.dataset_id})")
         
         return self._engine

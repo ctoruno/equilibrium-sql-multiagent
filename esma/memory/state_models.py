@@ -41,6 +41,7 @@ class BaseSQLState(BaseModel):
 
 ##### Models for ReAct Agents #####
 
-class  BaseReActState(BaseModel):
+class BaseReActState(BaseModel):
+    """State for ReAct agents with summary support"""
     messages: Annotated[List[BaseMessage], add_messages] = []
-    summary: str = ""
+    summary: Optional[str] = None

@@ -10,6 +10,13 @@ RUN PYTHONDONTWRITEBYTECODE=1 uv pip install --system --prerelease=allow --no-ca
 ENV LANGSERVE_GRAPHS='{"esma": "esma.agents.esma:agent"}'
 
 
+# -- Cloud Run Configuration --
+# Cloud Run will set the PORT environment variable
+ENV PORT=8080
+# LangGraph API uses LANGSERVE_PORT internally
+ENV LANGSERVE_PORT=${PORT}
+# -- End of Cloud Run Configuration --
+
 
 # -- Ensure user deps didn't inadvertently overwrite langgraph-api
 RUN mkdir -p /api/langgraph_api /api/langgraph_runtime /api/langgraph_license && touch /api/langgraph_api/__init__.py /api/langgraph_runtime/__init__.py /api/langgraph_license/__init__.py

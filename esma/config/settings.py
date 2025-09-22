@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     max_tokens: int = 10000
     temperature: float = 0.1
 
+    summarizer_model: str = "google_vertexai:gemini-2.5-flash"
+    summarizer_max_tokens: int = 2500
+    summarizer_temperature: float = 0.3
+    summarizer_token_threshold: int = 500000
+    messages_to_keep: int = 3
+
     # LangSmith
     langsmith_tracing: bool
     langsmith_endpoint: str
