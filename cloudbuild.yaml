@@ -15,3 +15,6 @@ steps:
 
 images:
 - 'us-east1-docker.pkg.dev/$PROJECT_ID/esma-agent/esma-agent:$SHORT_SHA'
+
+options:
+  defaultLogsBucketBehavior: 'REGIONAL_USER_OWNED_BUCKET'
