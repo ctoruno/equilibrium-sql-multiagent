@@ -11,6 +11,10 @@ equilibrium-sql-agent/
 │   │   ├── __init__.py
 │   │   ├── baseReAct.py             # Base ReACt agent class for shared functionality
 │   │   └── esma.py                  # ESMA class to initialize agents based on user input
+│   ├── api
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   └── app.py                   # FastAPI app with endpoints
 │   ├── config/
 │   │   ├── __init__.py
 │   │   └── settings.py              # Environment variables, API keys, connection configs

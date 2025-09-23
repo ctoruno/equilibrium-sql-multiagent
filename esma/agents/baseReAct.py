@@ -1,14 +1,12 @@
 """
 Base class for database-specific ReAct SQL agents
 """
-import json
 from typing import Literal
 
 import tiktoken
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolMessage, RemoveMessage
-from langchain_core.messages.tool import ToolCall
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
@@ -229,7 +227,7 @@ class ReActAgent:
         builder.add_edge("summarize", END)
 
         return builder.compile(
-            # checkpointer=self.checkpointer
+            checkpointer=self.checkpointer
         )
     
 

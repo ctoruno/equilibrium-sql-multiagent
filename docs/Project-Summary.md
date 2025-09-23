@@ -1,183 +1,146 @@
-# Equilibrium SQL Multi-Agent
+# Equilibrium SQL Agent (ESMA)
 
 ## Project Overview
-Chatbot system that can answer complex user questions by querying two separate, complex databases: **ENAHO** and **GEIH**. The system uses AI agents to understand natural language queries and generate appropriate SQL queries.
+AI-powered chatbot system that answers complex user questions by querying two household survey databases: **ENAHO** (Peru) and **GEIH** (Colombia). The system uses a single ReAct agent to understand natural language queries and generate appropriate SQL queries for either database.
 
 ## Technical Stack
-- **Databases**: Google BigQuery
+- **Databases**: Google BigQuery (separate datasets for each survey)
 - **AI Framework**: LangChain + LangGraph for agent orchestration
-- **LLMs**: Gemini/GPT for agents
+- **LLMs**: Gemini 2.5 Pro (primary), configurable for OpenAI GPT models
 - **Embeddings**: VoyageAI (voyage-3.5 model)
 - **Vector Database**: Pinecone with separate indexes per database
-- **Architecture**: Multi-agent system with separate agents for each database
+- **API Framework**: FastAPI with streaming and non-streaming endpoints
+- **Architecture**: Single ReAct agent with specialized tools
 
-## Multi-Agent Architecture with LangGraph
-- **Multi-Agent Orchestration**: Specialized agents for ENAHO and GEIH databases with intelligent routing
+## Current Architecture
 
-### Linear Flow Diagram
+### ReAct Agent Flow
 ```
-User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → Table Selection (System Prompt) → Column Retrieval (Vector DB) → SQL Generation → Execution → Response
-```
-
-### ReAct Flow Diagram
-```
-User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → ReAct Loop → Format Answer Node
-                                                                  ↓
-                                                        [Table Description Tool]
-                                                        [Column Retrieval Tool]
-                                                        [SQL Generation Tool]
-                                                        [Validation Tool]
-                                                        [Execution Tool]
-                                                        [Documentation Search Tool]
+User Query → ESMA ReAct Agent → Tool Selection Loop → Response Generation
+                    ↓
+    [Table Description Retriever]
+    [Column Retriever (Vector DB)]
+    [Schema Gatherer]
+    [Schema Validator] 
+    [SQL Executor]
 ```
 
-![](esma-flow-diagram.png)
+### Key Components
+- **Single Universal Agent**: One ReAct agent handles both ENAHO and GEIH databases
+- **Database Selection**: Agent determines target database from user context (Peru/Colombia keywords)
+- **Tool-Based Workflow**: 5 specialized tools for different aspects of SQL generation
+- **Memory Management**: Automatic conversation summarization when token limits are approached
+- **Thread Persistence**: Conversation continuity through configurable thread IDs
 
-## Agent Design Strategy
-- **System Prompt**: Contains table descriptions and business logic for immediate table selection (linar flow)
-- **Vector Retrieval**: Query column namespace filtered by selected table(s) for relevant columns
-- **Documentation Access**: Specialized agents can query documentation namespace for methodology clarifications
-- **Token Management**: Intelligent message trimming and summarization to maintain context while respecting LLM token limits
-- **Conversation Persistence**: Long-term memory with conversation threads saved to BigQuery datasets for continuity across sessions
-
-## Current Prototype Limitations
-- **Single Universal User**: The application operates with a single user model - no individual user authentication or personalized data management
-- **Restricted Access**: Access will be limited to authorized users only, though without individual user account management
-- **Prototype Status**: This is a proof-of-concept implementation designed to validate the multi-agent SQL generation approach
-
-## Database Complexity Challenge
-- **ENAHO Database**: 11 tables, 20-75 columns per table (~440-660 total columns)
-- **GEIH Database**: 8 tables, 20-75 columns per table (~320-480 total columns)
-- **Documentation**:
-  - ENAHO: Each table has a JSON file with schema and variable information and a brief description of what the table contains
-  - GEIH: Each table has a JSON file with schema and variable information and a brief description of what the table contains
-
-### Query Scope
-- Users will **rarely need to combine information** from both databases
-- Each query typically targets one database or the other
-- Simplified architecture: separate agents per database rather than cross-database joins
-
-### Schema Management Strategy
-**Problem**: Cannot load all 800-1200+ columns into LLM context efficiently
-
-**Solution**: Hybrid Approach - System Prompt Tables + Vector Retrieval Columns
-1. **Table-level selection**: Agent system prompt contains descriptions of all 11 (ENAHO) or 8 (GEIH) tables with business logic
-2. **Column-level selection**: Agent queries vector database filtered by selected table(s) to retrieve relevant columns
-3. **Fallback strategy**: Ask user for rephrasing/clarification when topic classification fails
-4. **Documentation gaps**: Reply "beyond scope" when documentation is unclear/missing
+## Database Complexity
+- **ENAHO Database**: 11 tables, ~440-660 total columns (Peruvian household survey)
+- **GEIH Database**: 8 tables, ~320-480 total columns (Colombian household survey)
+- **Challenge**: Cannot load all 800-1200+ columns into LLM context efficiently
 
 ## Knowledge Base Architecture
 
-### Pinecone Indexes and Namespaces
-- **enaho-2024** index:
-  - `enaho-2024-columns` namespace: Column/variable information with rich metadata
-  - `enaho-2024-documentation` namespace: Chunked methodology PDF content (650 tokens/chunk, 75 token overlap)
-
-- **geih-2024** index:
-  - `geih-2024-columns` namespace: Column/variable information with rich metadata
-  - `geih-2024-documentation` namespace: Chunked methodology PDF content (650 tokens/chunk, 75 token overlap)
+### Pinecone Indexes
+- **enaho-2024** index with `enaho-2024-columns` namespace
+- **geih-2024** index with `geih-2024-columns` namespace
 
 ### Vector Record Structure
-
-**Column Records:**
 ```json
 {
     "id": "ENAHO01-2024-100_P101",
-    "values": [...],  # voyage-3.5 embedding of concatenated text
+    "values": [...],  
     "metadata": {
         "table_id": "ENAHO01-2024-100",
-        "column_name": "P101",
+        "column_name": "P101", 
         "description": "Tipo de vivienda",
         "data_type": "NUMERIC",
         "business_meaning": "Housing type classification",
         "valid_values": {
             "1": "Casa independiente",
-            "2": "Departamento en edificio",
-            "3": "Vivienda en quinta",
-            "4": "Vivienda en casa de vecindad"
+            "2": "Departamento en edificio"
         }
     }
 }
 ```
 
-**Documentation Records:**
-```json
-{
-    "id": "enaho_15",
-    "values": [...],  # voyage-3.5 embedding of chunk text
-    "metadata": {
-        "source": "enaho_documentation.pdf"
-    }
-}
-```
+## Tool System
 
-### Embedding Text Strategy
-- **Columns**: Concatenate column_name, description, business_meaning, and valid_values (if available)
-- **Documentation**: 650-token chunks with 75-token overlap for context continuity
+### 1. Table Description Retriever
+- Loads markdown documentation for available tables
+- Provides business context for table selection
+- Returns available tables in BigQuery vs. documented tables
 
-## Key Technical Considerations
-- **Schema versioning**: Handle missing/unclear documentation gracefully
-- **Query validation**: Prevent hallucinated table/column names using retrieved metadata
-- **Performance**: Efficient embedding retrieval with table filtering
-- **Maintainability**: Design code for easy system update when new databases/agents are added
-- **Similarity thresholds**: Implement fallback when vector retrieval confidence is low
-- **Conversation Management**: Implement effective message trimming strategies to maintain context continuity
-- **Data Persistence**: Design conversation storage schema for efficient retrieval and thread reconstruction
+### 2. Column Retriever  
+- Vector similarity search for relevant columns
+- Filtered by selected tables
+- Returns column metadata including valid values and business meaning
 
-## Future Enhancements (Post-Prototype)
-- **Caching Layer**: Redis-like database implementation for query result caching and performance optimization
-- **User Authentication**: Individual user accounts with role-based access control and personalized query history
-- **Multi-User Architecture**: Separate data spaces, conversation histories, and preferences per authenticated user
+### 3. Schema Gatherer
+- Retrieves actual BigQuery schema information
+- Provides sample data for understanding value formats
+- Validates table existence
 
-## Implementation Timeline
+### 4. Schema Validator
+- Validates SQL queries against BigQuery schema
+- Prevents dangerous operations (INSERT, DELETE, etc.)
+- Checks table and column existence
 
-### Data Infrastructure Setup (Week 1)
-1. Knowledge base creation ✅
-  - Pinecone indexes and namespaces established
-  - Vector database populated
-2. SQL Databases creation ✅
-  - BigQuery Datasets established
-  - BigQuery Tables populated
+### 5. SQL Executor
+- Executes validated queries against BigQuery
+- Applies result limits automatically
+- Provides structured error handling
 
-### Specialized Agent Development (Weeks 2-3)
-1. Agent System Prompts ✅
-  - Draft comprehensive table descriptions and metadata
-  - Encode business logic and analytical rules per dataset
-2. Vector Retrieval Logic
-  - Implement column retrieval with table filtering logic
-  - Add semantic search integration for schema-aware lookups
-3. Database Connections
-  - Connect agents to BigQuery
-  - Test query execution on live connections
-4. SQL Generation
-  - Develop SQL query generation with schema validation
-  - Implement guardrails for query correctness and efficiency
-  - Add error-handling and self-correction loops
+## API Layer (FastAPI)
 
-### Router Agent Development & System Testing (Weeks 4-5)
-1. Router Agent
-  - Implement database selection logic
-  - Design routing policies based on query type, keywords, and metadata
-  - Add confidence scoring to guide routing decisions
-2. Integration with Specialized Agents
-  - Connect router with ENAHO and GEIH agents
-  - Ensure smooth query passing and response handoff
-  - Implement consistency checks across agent outputs
-3. Fallback Mechanisms
-  - Handle unclear queries and incomplete documentation gracefully
-  - Escalate to general-purpose agent or clarification prompts when routing fails
-  - Maintain logs of fallback cases for continuous improvement
-4. Integration Testing
-  - Run end-to-end testing with real queries spanning multiple use cases
-  - Evaluate accuracy of routing, SQL generation, and retrieval
+### Endpoints
+- `POST /chat` - Non-streaming chat with JSON response
+- `POST /chat/stream` - Server-sent events streaming
+- `POST /thread/new` - Create new conversation thread
+- `GET /` - API documentation
 
-### Back-End Deployment (Week 6)
-1. Containerize with Docker for portability and scalability
-2. Configure environment variables, API keys, and secure access
-3. Deploy to a production environment
+### Features
+- **Thread Management**: Persistent conversations with unique thread IDs
+- **Streaming Support**: Real-time response streaming for better UX
+- **Error Handling**: Structured error responses with details
+- **CORS Ready**: Configurable for frontend integration
 
-### Front-End Development and Deployment (Weeks 7-8)
-1. Streamlit Front-End
-2. Integration Layer
-3. Testing & Validation
-4. Documentation & Handover
+## Memory & Token Management
+
+### Conversation Summarization
+- Automatic summarization when token threshold exceeded (configurable)
+- Preserves key information: queries, operations, findings, errors
+- Maintains conversation context while respecting LLM limits
+- Uses separate summarizer LLM for efficiency
+
+### Message Management
+- Keeps recent messages in active context
+- Removes old messages after summarization
+- Maintains system prompt and conversation flow
+
+## 🔧 Current Limitations
+- **Single Universal User**: No individual user authentication
+- **Restricted Access**: Prototype-level access control
+- **No Caching**: Direct BigQuery queries without caching layer
+- **Limited Documentation Search**: Only column-level vector search implemented
+
+## Configuration Management
+- Environment-based configuration using Pydantic Settings
+- Configurable LLM models, token limits, similarity thresholds
+- Separate dataset IDs for each database
+- API key management for all external services
+
+## Query Workflow Example
+1. User asks about unemployment rates in Colombia
+2. Agent identifies GEIH database from context
+3. Retrieves table descriptions to select relevant tables
+4. Uses vector search to find employment-related columns
+5. Generates and validates SQL query
+6. Executes query and formats results
+7. Provides interpretation with statistical context
+
+## Future Enhancement Opportunities
+- **User Authentication**: Individual accounts and personalized history
+- **Query Caching**: Redis/similar for performance optimization  
+- **Documentation Search**: Full methodology document vector search
+- **Cross-Database Queries**: Advanced analysis combining both surveys
+- **Export Capabilities**: CSV/Excel download of query results
+- **Query Templates**: Pre-built queries for common analyses

@@ -1,7 +1,11 @@
+import os
 from pydantic_settings import BaseSettings
 from typing import Optional, Dict
 
 class Settings(BaseSettings):
+    """Configuration settings for ESMA SQL Agent"""
+    author: str = "Carlos Toruno"
+
     # API Keys
     openai_api_key: str
     voyageai_api_key: str
@@ -53,3 +57,5 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
+os.environ["GOOGLE_CLOUD_PROJECT"] = settings.gcp_project_id

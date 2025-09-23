@@ -1,49 +1,120 @@
 # Equilibrium SQL Multi-Agent
 
 ## Project Overview
-Chatbot system that can answer complex user questions by querying two separate, complex databases: **ENAHO** and **GEIH**. The system uses AI agents to understand natural language queries and generate appropriate SQL queries.
+AI-powered chatbot system that answers complex user questions by querying two household survey databases: **ENAHO** (Peru) and **GEIH** (Colombia). The system uses a single ReAct agent to understand natural language queries and generate appropriate SQL queries for either database.
 
 ## Technical Stack
-- **Databases**: Google BigQuery
+- **Databases**: Google BigQuery (separate datasets for each survey)
 - **AI Framework**: LangChain + LangGraph for agent orchestration
-- **LLMs**: Gemini/GPT for agents
+- **LLMs**: Gemini 2.5 Pro (primary), configurable for OpenAI GPT models
 - **Embeddings**: VoyageAI (voyage-3.5 model)
 - **Vector Database**: Pinecone with separate indexes per database
-- **Architecture**: Multi-agent system with separate agents for each database
+- **API Framework**: FastAPI with streaming and non-streaming endpoints
+- **Architecture**: Single ReAct agent with specialized tools
 
-## Multi-Agent Architecture with LangGraph
-- **Multi-Agent Orchestration**: Specialized agents for ENAHO and GEIH databases with intelligent routing
+## Current Architecture
 
-### Linear Flow Diagram
+### ReAct Agent Flow
 ```
-User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → Table Selection (System Prompt) → Column Retrieval (Vector DB) → SQL Generation → Execution → Response
-```
-
-### ReAct Flow Diagram
-```
-User Query → Router Agent → Specialized Agent [ENAHO | GEIH] → ReAct Loop → Format Answer Node
-                                                                  ↓
-                                                        [Table Description Tool]
-                                                        [Column Retrieval Tool]
-                                                        [SQL Generation Tool]
-                                                        [Validation Tool]
-                                                        [Execution Tool]
-                                                        [Documentation Search Tool]
+User Query → ESMA ReAct Agent → Tool Selection Loop → Response Generation
+                    ↓
+    [Table Description Retriever]
+    [Column Retriever (Vector DB)]
+    [Schema Gatherer]
+    [Schema Validator] 
+    [SQL Executor]
 ```
 
-![](docs/esma-flow-diagram.png)
+### Key Components
+- **Single Universal Agent**: One ReAct agent handles both ENAHO and GEIH databases
+- **Database Selection**: Agent determines target database from user context (Peru/Colombia keywords)
+- **Tool-Based Workflow**: 5 specialized tools for different aspects of SQL generation
+- **Memory Management**: Automatic conversation summarization when token limits are approached
+- **Thread Persistence**: Conversation continuity through configurable thread IDs
 
-## Agent Design Strategy
-- **System Prompt**: Contains table descriptions and business logic for immediate table selection (linar flow)
-- **Vector Retrieval**: Query column namespace filtered by selected table(s) for relevant columns
-- **Documentation Access**: Specialized agents can query documentation namespace for methodology clarifications
-- **Token Management**: Intelligent message trimming and summarization to maintain context while respecting LLM token limits
-- **Conversation Persistence**: Long-term memory with conversation threads saved to BigQuery datasets for continuity across sessions
+## Database Complexity
+- **ENAHO Database**: 11 tables, ~440-660 total columns (Peruvian household survey)
+- **GEIH Database**: 8 tables, ~320-480 total columns (Colombian household survey)
+- **Challenge**: Cannot load all 800-1200+ columns into LLM context efficiently
 
-## Current Prototype Limitations
-- **Single Universal User**: The application operates with a single user model - no individual user authentication or personalized data management
-- **Restricted Access**: Access will be limited to authorized users only, though without individual user account management
-- **Prototype Status**: This is a proof-of-concept implementation designed to validate the multi-agent SQL generation approach
+## Knowledge Base Architecture
+
+### Pinecone Indexes
+- **enaho-2024** index with `enaho-2024-columns` namespace
+- **geih-2024** index with `geih-2024-columns` namespace
+
+### Vector Record Structure
+```json
+{
+    "id": "ENAHO01-2024-100_P101",
+    "values": [...],  
+    "metadata": {
+        "table_id": "ENAHO01-2024-100",
+        "column_name": "P101", 
+        "description": "Tipo de vivienda",
+        "data_type": "NUMERIC",
+        "business_meaning": "Housing type classification",
+        "valid_values": {
+            "1": "Casa independiente",
+            "2": "Departamento en edificio"
+        }
+    }
+}
+```
+
+## Tool System
+
+### 1. Table Description Retriever
+- Loads markdown documentation for available tables
+- Provides business context for table selection
+- Returns available tables in BigQuery vs. documented tables
+
+### 2. Column Retriever  
+- Vector similarity search for relevant columns
+- Filtered by selected tables
+- Returns column metadata including valid values and business meaning
+
+### 3. Schema Gatherer
+- Retrieves actual BigQuery schema information
+- Provides sample data for understanding value formats
+- Validates table existence
+
+### 4. Schema Validator
+- Validates SQL queries against BigQuery schema
+- Prevents dangerous operations (INSERT, DELETE, etc.)
+- Checks table and column existence
+
+### 5. SQL Executor
+- Executes validated queries against BigQuery
+- Applies result limits automatically
+- Provides structured error handling
+
+## API Layer (FastAPI)
+
+### Endpoints
+- `POST /chat` - Non-streaming chat with JSON response
+- `POST /chat/stream` - Server-sent events streaming
+- `POST /thread/new` - Create new conversation thread
+- `GET /` - API documentation
+
+### Features
+- **Thread Management**: Persistent conversations with unique thread IDs
+- **Streaming Support**: Real-time response streaming for better UX
+- **Error Handling**: Structured error responses with details
+- **CORS Ready**: Configurable for frontend integration
+
+## Memory & Token Management
+
+### Conversation Summarization
+- Automatic summarization when token threshold exceeded (configurable)
+- Preserves key information: queries, operations, findings, errors
+- Maintains conversation context while respecting LLM limits
+- Uses separate summarizer LLM for efficiency
+
+### Message Management
+- Keeps recent messages in active context
+- Removes old messages after summarization
+- Maintains system prompt and conversation flow
 
 ## Install in Development Mode
 
@@ -65,4 +136,10 @@ uv run python -c "import esma; print('esma imported successfully')"
 
 ```bash
 langgraph dev --no-reload
+```
+
+## Run FastAPI Server
+
+```bash
+uv run uvicorn esma.api.app:app --reload --host 0.0.0.0 --port 8000
 ```

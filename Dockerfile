@@ -1,31 +1,38 @@
-FROM langchain/langgraph-api:3.13
+# Multi-stage build for optimization
+FROM python:3.13-slim AS builder
 
-# -- Adding local package . --
-ADD . /deps/equilibrium-sql-multiagent
-# -- End of local package . --
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# -- Installing all local dependencies --
-RUN PYTHONDONTWRITEBYTECODE=1 uv pip install --system --prerelease=allow --no-cache-dir -c /api/constraints.txt -e /deps/*
-# -- End of local dependencies install --
-ENV LANGSERVE_GRAPHS='{"esma": "esma.agents.esma:agent"}'
+# Set working directory
+WORKDIR /app
 
+# Copy dependency files
+COPY pyproject.toml .
 
-# -- Cloud Run Configuration --
-# Cloud Run will set the PORT environment variable
+# Install dependencies using uv
+RUN uv pip install --system --no-cache -r pyproject.toml
+
+# Production stage
+FROM python:3.13-slim
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code
+COPY esma/ ./esma/
+
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Cloud Run uses PORT environment variable
 ENV PORT=8080
-# LangGraph API uses LANGSERVE_PORT internally
-ENV LANGSERVE_PORT=${PORT}
-# -- End of Cloud Run Configuration --
+EXPOSE 8080
 
-
-# -- Ensure user deps didn't inadvertently overwrite langgraph-api
-RUN mkdir -p /api/langgraph_api /api/langgraph_runtime /api/langgraph_license && touch /api/langgraph_api/__init__.py /api/langgraph_runtime/__init__.py /api/langgraph_license/__init__.py
-RUN PYTHONDONTWRITEBYTECODE=1 uv pip install --system --prerelease=allow --no-cache-dir --no-deps -e /api
-# -- End of ensuring user deps didn't inadvertently overwrite langgraph-api --
-# -- Removing build deps from the final image ~<:===~~~ --
-RUN pip uninstall -y pip setuptools wheel
-RUN rm -rf /usr/local/lib/python*/site-packages/pip* /usr/local/lib/python*/site-packages/setuptools* /usr/local/lib/python*/site-packages/wheel* && find /usr/local/bin -name "pip*" -delete || true
-RUN rm -rf /usr/lib/python*/site-packages/pip* /usr/lib/python*/site-packages/setuptools* /usr/lib/python*/site-packages/wheel* && find /usr/bin -name "pip*" -delete || true
-RUN uv pip uninstall --system pip setuptools wheel && rm /usr/bin/uv /usr/bin/uvx
-
-WORKDIR /deps/equilibrium-sql-multiagent
+# Run with uvicorn optimized for Cloud Run
+CMD exec uvicorn esma.api.app:app --host 0.0.0.0 --port ${PORT} --workers 1
