@@ -27,3 +27,8 @@
     - Add a cloudbuild.yaml file to the root of your repository
     - Create a trigger for the main branch
 
+6. Google Cloud Run
+    - Enable API
+    - Create and deploy a new service
+    - Set environment variables
+

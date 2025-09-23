@@ -138,7 +138,7 @@ uv run python -c "import esma; print('esma imported successfully')"
 langgraph dev --no-reload
 ```
 
-## Run FastAPI Server
+## Run FastAPI Local Server
 
 ```bash
 uv run uvicorn esma.api.app:app --reload --host 0.0.0.0 --port 8000

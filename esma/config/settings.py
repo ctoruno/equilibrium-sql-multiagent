@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     summarizer_token_threshold: int = 500000
     messages_to_keep: int = 3
 
-    # LangSmith
+    # LangSmith (Uncomment if using LangGraph Platform)
     # langsmith_tracing: bool
     # langsmith_endpoint: str
     # langsmith_project: str
