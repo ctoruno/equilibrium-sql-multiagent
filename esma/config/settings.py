@@ -57,5 +57,6 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
+if settings.google_application_credentials:
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
 os.environ["GOOGLE_CLOUD_PROJECT"] = settings.gcp_project_id
