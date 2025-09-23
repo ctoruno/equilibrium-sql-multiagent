@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     author: str = "Carlos Toruno"
 
     # API Keys
-    openai_api_key: str
+    # openai_api_key: str
     voyageai_api_key: str
     pinecone_api_key: str
 
@@ -46,10 +46,10 @@ class Settings(BaseSettings):
     messages_to_keep: int = 3
 
     # LangSmith
-    langsmith_tracing: bool
-    langsmith_endpoint: str
-    langsmith_project: str
-    langsmith_api_key: Optional[str] = None
+    # langsmith_tracing: bool
+    # langsmith_endpoint: str
+    # langsmith_project: str
+    # langsmith_api_key: Optional[str] = None
 
     class Config:
         env_file = ".env"
