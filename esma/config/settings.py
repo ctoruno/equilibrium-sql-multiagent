@@ -46,10 +46,10 @@ class Settings(BaseSettings):
 
     # ENV variables for Local LangGraph Platform Development
     # openai_api_key: str
-    # langsmith_tracing: bool
-    # langsmith_endpoint: str
-    # langsmith_project: str
-    # langsmith_api_key: Optional[str] = None
+    langsmith_tracing: bool
+    langsmith_endpoint: str
+    langsmith_project: str
+    langsmith_api_key: Optional[str] = None
 
     class Config:
         env_file = ".env"
