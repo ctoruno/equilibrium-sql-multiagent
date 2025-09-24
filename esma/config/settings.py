@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     author: str = "Carlos Toruno"
 
     # API Keys
-    # openai_api_key: str
     voyageai_api_key: str
     pinecone_api_key: str
 
@@ -45,7 +44,8 @@ class Settings(BaseSettings):
     summarizer_token_threshold: int = 500000
     messages_to_keep: int = 3
 
-    # LangSmith (Uncomment if using LangGraph Platform)
+    # ENV variables for Local LangGraph Platform Development
+    # openai_api_key: str
     # langsmith_tracing: bool
     # langsmith_endpoint: str
     # langsmith_project: str

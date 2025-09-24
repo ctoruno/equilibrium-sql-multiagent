@@ -2,6 +2,7 @@
 FastAPI application for ESMA SQL Agent
 """
 import uuid
+import json
 from typing import Optional
 from contextlib import asynccontextmanager
 
@@ -88,8 +89,9 @@ async def chat_stream(request: ChatRequest):
         async def generate():
             """Generator for streaming responses"""
             async for chunk in agent.astream(request.message, config=config):
-                yield f"data: {{\"type\": \"content\", \"content\": {repr(chunk)}}}\n\n"
-        
+                data = {"type": "content", "content": chunk}
+                yield f"data: {json.dumps(data)}\n\n"
+
         return StreamingResponse(
             generate(),
             media_type="text/event-stream",

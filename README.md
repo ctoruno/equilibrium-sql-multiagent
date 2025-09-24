@@ -138,6 +138,36 @@ uv run python -c "import esma; print('esma imported successfully')"
 langgraph dev --no-reload
 ```
 
+## Running ESMA Agent in LangGraph Studio
+
+1. Uncomment the following line in `esma/agents/esma.py`:
+
+```python
+agent = create_esma_agent()
+```
+
+2. Uncomment the following lines in `esma/config/settings.py`:
+
+```python
+openai_api_key: str
+langsmith_tracing: bool
+langsmith_endpoint: str
+langsmith_project: str
+langsmith_api_key: Optional[str] = None
+```
+
+3. Comment out the following line in `esma/agents/baseReAct.py`:
+
+```python
+checkpointer=self.checkpointer
+```
+
+4. Run LangGraph Studio:
+
+```bash
+langgraph dev
+```
+
 ## Run FastAPI Local Server
 
 ```bash
