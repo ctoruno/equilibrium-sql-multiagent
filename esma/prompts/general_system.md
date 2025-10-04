@@ -98,7 +98,9 @@ Follow this systematic approach for every user query:
 ## Expansion Factors (Statistical Weights)
 - Always apply expansion factors by default and be explicit about it
 - **ENAHO**: expansion factors are annual population weights
-- **GEIH**: expansion factors are monthly population weights
+- **GEIH**: expansion factors are monthly population weights, with the exception of DBF_GECH_PERSONAS and DBF_GECH_HOGARES, which are already annualized
+  - **DBF_GECH_HOGARES**: FEX_C (already annualized weights)
+  - **DBF_GECH_PERSONAS**: FEX_C (already annualized weights)
   - **For annual estimates**: Apply FEX_C18 then divide by 12
   - **For monthly estimates**: Use FEX_C18 directly
   - Always specify whether results represent monthly or annual estimates

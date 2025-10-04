@@ -116,7 +116,15 @@ User Query → ESMA ReAct Agent → Tool Selection Loop → Response Generation
 - Removes old messages after summarization
 - Maintains system prompt and conversation flow
 
-## Install in Development Mode
+## Getting Started
+
+```bash
+git clone https://github.com/ctoruno/equilibrium-sql-multiagent.git
+cd equilibrium-sql-multiagent
+uv sync
+```
+
+### Install in Development Mode
 
 1. Install package in development mode:
 
@@ -138,37 +146,27 @@ uv run python -c "import esma; print('esma imported successfully')"
 langgraph dev --no-reload
 ```
 
-## Running ESMA Agent in LangGraph Studio
+### Running ESMA Agent in LangGraph Studio for local development
 
-1. Uncomment the following line in `esma/agents/esma.py`:
-
-```python
-agent = create_esma_agent()
-```
-
-2. Uncomment the following lines in `esma/config/settings.py`:
-
-```python
-openai_api_key: str
-langsmith_tracing: bool
-langsmith_endpoint: str
-langsmith_project: str
-langsmith_api_key: Optional[str] = None
-```
-
-3. Comment out the following line in `esma/agents/baseReAct.py`:
+1. Comment out the following line in `esma/agents/baseReAct.py`:
 
 ```python
 checkpointer=self.checkpointer
 ```
 
-4. Run LangGraph Studio:
+2. Activate your virtual environment if not already done:
+
+```bash
+source .venv/bin/activate   # On macOS/Linux
+```
+
+3. Run LangGraph Studio:
 
 ```bash
 langgraph dev
 ```
 
-## Run FastAPI Local Server
+### Run FastAPI Local Server
 
 ```bash
 uv run uvicorn esma.api.app:app --reload --host 0.0.0.0 --port 8000

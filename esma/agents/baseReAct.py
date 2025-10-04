@@ -10,14 +10,13 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
-# from langgraph.checkpoint.memory import MemorySaver
 
 from esma.config.settings import settings
 from esma.memory.state_models import BaseReActState
 from esma.prompts.prompt_loader import PromptLoader
 
 from esma.tools.table_descriptions_retriever import TableDescriptionRetriever
-from esma.tools.column_retriever import ColumnRetriever
+from esma.tools.column_retriever_vertexai import ColumnRetriever
 from esma.tools.schema_gatherer import SchemaGatherer
 from esma.tools.schema_validator import SchemaValidator
 from esma.tools.sql_executor import SQLExecutor
@@ -204,7 +203,9 @@ class ReActAgent:
         builder.add_node("agent", self._agent_node)
         builder.add_node("tools", ToolNode(self.custom_tools))
         builder.add_node("summarize", self._summarize_conversation)
-        builder.add_node("check_summary", lambda state: {}) # Conditional edges must originate from a node. Can't have conditional routing directly from another conditional edge.
+        # Conditional edges must originate from a node. 
+        # Can't have conditional routing directly from another conditional edge.
+        builder.add_node("check_summary", lambda state: {})
 
         builder.add_edge(START, "agent")
         builder.add_conditional_edges(

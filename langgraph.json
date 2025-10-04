@@ -1,7 +1,7 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "esma": "esma.agents.esma:agent"
+    "esma": "esma.agents.esma-dev:agent"
   },
   "env": ".env",
   "python_version": "3.13",

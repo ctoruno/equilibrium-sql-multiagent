@@ -43,7 +43,8 @@ class BigQueryDataUploader:
             self.dataset = "geih_2024"
             self.bucket_name = "sql-multiagent-geih-2024"
             self.data_encoding = "utf-8"
-            self.delimiter = ";"
+            self.delimiter = ","
+            # self.delimiter = ";"   # Most GEIH TABLES USE SEMICOLON AS DELIMITER
             self.data_format = ".csv"
 
         self.project_id = project_id

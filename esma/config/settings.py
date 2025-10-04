@@ -12,19 +12,19 @@ class Settings(BaseSettings):
 
     # BigQuery
     gcp_project_id: str
+    gcp_region: str = "us-east1"
     google_application_credentials: Optional[str] = None
     dataset_ids: Dict[str, str] = {
         "enaho": "enaho_2024",
         "geih": "geih_2024"
     }
 
-    # SQL Settings
+    # SQL
     sql_result_limit: int = 500
     max_retries: int = 3
 
     # Pinecone & VoyageAI
     similarity_threshold: float = 0.25
-    max_column_retrieval_results: int = 7
     max_docs_retrieval_results: int = 25
     pc_indexes: Dict[str, str] = {
         "enaho": "enaho-2024",
@@ -32,8 +32,25 @@ class Settings(BaseSettings):
     }
     embedding_model: str = "voyage-3.5"
 
+    # VertexAI
+    max_column_retrieval_results: int = 15
+    vertex_location: str = "us-east1"
+    vertex_api_endpoint: Dict[str, str] = {
+        "enaho": "1799297254.us-east1-514700908055.vdb.vertexai.goog",
+        "geih": "2141955479.us-east1-514700908055.vdb.vertexai.goog"
+    }
+    vertex_index_endpoints: Dict[str, str] = {
+        "enaho": "projects/514700908055/locations/us-east1/indexEndpoints/3366058091412979712",
+        "geih": "projects/514700908055/locations/us-east1/indexEndpoints/5723692496341434368"
+    }
+    vertex_deployed_indexes: Dict[str, str] = {
+        "enaho": "enaho_2024_columns_dp",
+        "geih": "geih_2024_columns_dp"
+    }
+    vertex_embedding_model: str = "gemini-embedding-001"
+    vertex_embedding_dimension: int = 3072
+
     # LLM Settings
-    # default_model: str = "openai:gpt-5"
     default_model: str = "google_vertexai:gemini-2.5-pro"
     max_tokens: int = 10000
     temperature: float = 0.1
@@ -44,8 +61,7 @@ class Settings(BaseSettings):
     summarizer_token_threshold: int = 500000
     messages_to_keep: int = 3
 
-    # ENV variables for Local LangGraph Platform Development
-    # openai_api_key: str
+    # Local LangGraph Platform Development
     langsmith_tracing: bool
     langsmith_endpoint: str
     langsmith_project: str

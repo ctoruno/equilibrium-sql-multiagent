@@ -15,3 +15,4 @@ client_secret_google.json
 .DS_Store
 equilibrium-sql-multiagent.json
 .vscode/settings.json
+/.langgraph_api

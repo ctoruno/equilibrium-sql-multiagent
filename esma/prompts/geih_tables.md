@@ -11,8 +11,10 @@ The geih-2024 database is composed by 8 different tables:
 - DBF_GECH_6_67
 - DBF_GECH_6_8
 - DBF_GECH_6_9
+- DBF_GECH_HOGARES
+- DBF_GECH_PERSONAS
 
-**⚠️ IMPORTANT STATISTICAL NOTE**: GEIH is conducted monthly throughout the year. When generating annual estimates or comparisons, the expansion factors (FEX_C18) represent monthly population weights. For annual population estimates, divide results by 12 after applying expansion factors to avoid overestimating the annual population size.
+**⚠️ IMPORTANT STATISTICAL NOTE**: GEIH is conducted monthly throughout the year. When generating annual estimates or comparisons, the expansion factors (FEX_C18) represent monthly population weights. For annual population estimates, divide results by 12 after applying expansion factors to avoid overestimating the annual population size. However, when using tables DBF_GECH_HOGARES and DBF_GECH_PERSONAS, use the expansion factors as provided without dividing by 12 given that these tables already account for annualization.
 
 ### DBF_GECH_6_5
 **Module Name**: Fuerza de Trabajo
@@ -171,6 +173,69 @@ Housing conditions, household characteristics, public services access, and finan
 - Water & Energy Sources: Primary water source for human consumption, cooking fuel types, food preparation areas
 - Housing Tenure: Property ownership status, mortgage payments, estimated property values, rental costs
 - Financial Inclusion: Household access to financial products, banking relationships and credit access patterns
+
+### DBF_GECH_HOGARES
+**Module Name**: Condiciones de Pobreza (HOGARES)
+
+**Description:**  
+Household-level module capturing dwelling identification, geographic classification, household size, income flows, poverty classification, and housing tenure. The table supports both micro-level household analysis and aggregated estimates of poverty and income distribution.  
+
+**Business Domain:** Housing, Income, Poverty & Demographics  
+
+**Identifiers**: Each row represents a household within a dwelling. Records are uniquely identified by the combination: **DIRECTORIO, SECUENCIA_P, MES**.  
+
+**Expansion Factor**:  
+- **FEX_C** provides the annualized weight for population-level estimates.  
+- **FEX_DPTO** provides the departmental weight for regional analysis.  
+
+**Key Topics Covered:**  
+- **Dwelling & Household Identification:** Dwelling code, household sequence, survey month, geographic stratification (urban/rural, domain, capital city classification).  
+- **Housing Tenure & Costs:** Ownership status (fully paid, mortgage, rental, usufruct, collective property, possession without title), mortgage payments, and estimated rental value.  
+- **Household Composition:** Number of persons in the household and in the economic spending unit.  
+- **Household Income:**  
+  - Total income before imputing rental value.  
+  - Total income including imputed rent for owner-occupied dwellings.  
+  - Per capita income adjusted for imputed rent.  
+- **Poverty Classification:**  
+  - Poverty and extreme poverty thresholds (LP, LI).  
+  - Household poverty status (binary indicator).  
+  - Household indigence status (binary indicator).  
+  - Number of poor and indigent individuals within the household.  
+- **Geographic & Regional Indicators:** Department codes for subnational analysis, along with survey domain and locality classification.
+
+### DBF_GECH_PERSONAS  
+**Module Name**: Condiciones de Pobreza (PERSONAS)  
+
+**Description:**  
+Person-level module capturing demographic characteristics, household relationship, education, employment, income sources (monetary and in-kind), social security affiliation, and labor market status. It supports micro-level individual analysis and aggregated statistics on labor markets, income distribution, education, and welfare.  
+
+**Business Domain:** Demographics, Employment, Income, Education, Health & Labor  
+
+**Identifiers**: Each row represents an individual within a household. Records are uniquely identified by the combination: **DIRECTORIO, SECUENCIA_P, ORDEN, MES**.  
+
+**Expansion Factor**:  
+- **FEX_C** provides the annualized weight for population-level estimates.  
+- **FEX_DPTO** provides the departmental weight for regional analysis.  
+
+**Key Topics Covered:**  
+- **Demographics & Household Role:** Sex, age, relationship to the household head.  
+- **Education:** Highest educational level attained, grade completed, diploma attainment.  
+- **Health & Social Security:** Affiliation to health security system, type of regime, pension fund contributions, retirement status.  
+- **Employment & Labor Market:**  
+  - Main activity during previous week (work, job search, study, domestic duties, etc.).  
+  - Occupational position in main and secondary jobs.  
+  - Tenure in current employment, usual working hours, desire/availability for more hours.  
+  - Job change intentions, recent job search, and availability for new employment.  
+  - Employment status: employed, unemployed, inactive, working-age population indicator.  
+- **Income Sources:**  
+  - Monetary income from primary and secondary employment.  
+  - Gross monthly earnings, overtime pay, bonuses, allowances (transport, food, family, education).  
+  - In-kind payments (food, housing, transportation, other goods/services).  
+  - Annual bonuses (Christmas, vacation, service).  
+  - Net profits from self-employment, business, or agriculture.  
+  - Rental income, pensions, alimony, remittances (domestic & international), institutional assistance, investment income, severance pay, and other sources.  
+- **Income Quality & Imputation:** Observed vs. imputed income values for all sources; total observed, imputed, and final income.  
+- **Geographic & Regional Indicators:** Department codes for subnational analysis, survey domain, and urban/rural classification.  
 
 # Mapping for Department Codes
 

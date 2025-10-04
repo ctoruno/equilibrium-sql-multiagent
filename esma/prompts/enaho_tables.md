@@ -14,6 +14,7 @@ The enaho-2024 database is composed by 11 different tables:
 - ENAHO01A-2024-300
 - ENAHO01A-2024-400
 - ENAHO01A-2024-500
+- SUMARIA-2024-12G
 
 ### ENAHO01-2024-100
 **Module Name**: Características de la Vivienda y del Hogar (Módulo 100)
@@ -72,6 +73,8 @@ Household expenditure module capturing detailed food and non-food consumption pa
 - Expenditure Analysis: Both raw and processed monetary values
 - Product Classification: Standardized product codes and free/subsidized good indicators
 
+**Important Note**: This tables registers specific expenditure on certain products or services. For aggregated household income and expenditure data, please refer to the SUMARIA-2024-12G table. Additionally, for ratios and percentages involving expenditure data covered in this  module, it is best to use the SUMARIA-2024-12G table as the denominator to ensure consistency.
+
 ### ENAHO01-2024-603
 **Module Name**: Mantenimiento de la Vivienda
 
@@ -90,6 +93,8 @@ Household maintenance and cleaning products expenditure module capturing acquisi
 - Service Valuations: Estimated market values for non-purchased items across all acquisition methods
 - Product Categories: Cleaning supplies, maintenance tools, household services, personal care items
 - Cost Analysis: Both raw and processed monetary estimates
+
+**Important Note**: This tables registers specific expenditure on certain products or services. For aggregated household income and expenditure data, please refer to the SUMARIA-2024-12G table. Additionally, for ratios and percentages involving expenditure data covered in this  module, it is best to use the SUMARIA-2024-12G table as the denominator to ensure consistency.
 
 ### ENAHO01-2024-604
 **Module Name**: Transportes y Comunicaciones
@@ -111,6 +116,8 @@ Transportation and communications expenditure module capturing household spendin
 - Acquisition Methods: Purchase, self-production, in-kind payments, gifts, institutional donations, other sources
 - Cost Analysis: Purchase locations, total expenditure, and estimated market values for non-purchased services
 
+**Important Note**: This tables registers specific expenditure on certain products or services. For aggregated household income and expenditure data, please refer to the SUMARIA-2024-12G table. Additionally, for ratios and percentages involving expenditure data covered in this  module, it is best to use the SUMARIA-2024-12G table as the denominator to ensure consistency.
+
 ### ENAHO01-2024-605
 **Module Name**: Servicios a la Vivienda
 
@@ -129,6 +136,8 @@ Housing services expenditure module capturing household spending on property-rel
 - Domestic Services: Household domestic help and cleaning services
 - Payment Methods: Direct household payments, gifts from other households, rent-inclusive services, other arrangements
 - Cost Analysis: Monthly service costs and estimated market values for non-paid services
+
+**Important Note**: This tables registers specific expenditure on certain products or services. For aggregated household income and expenditure data, please refer to the SUMARIA-2024-12G table. Additionally, for ratios and percentages involving expenditure data covered in this  module, it is best to use the SUMARIA-2024-12G table as the denominator to ensure consistency.
 
 ### ENAHO01-2024-609
 **Module Name**: Gastos de Transferencias
@@ -149,6 +158,8 @@ Transfer payments and financial obligations module capturing household expenditu
 - Government Obligations: Direct taxes, mandatory insurance payments
 - Cost Analysis: Total expenditure amounts with processed monetary estimates
 
+**Important Note**: This tables registers specific expenditure on certain products or services. For aggregated household income and expenditure data, please refer to the SUMARIA-2024-12G table. Additionally, for ratios and percentages involving expenditure data covered in this  module, it is best to use the SUMARIA-2024-12G table as the denominator to ensure consistency.
+
 ### ENAHO01-2024-612
 **Module Name**: Equipamiento del Hogar
 
@@ -167,6 +178,8 @@ Household durable goods inventory module capturing ownership, quantities, usage 
 - Transportation Vehicles: Cars, motorcycles, bicycles, commercial vehicles
 - Asset Details: Quantity owned, primary usage, acquisition timing
 - Economic Valuation: Original purchase costs, current market value estimates, and processed monetary values
+
+**Important Note**: This tables registers specific expenditure on certain products or services. For aggregated household income and expenditure data, please refer to the SUMARIA-2024-12G table. Additionally, for ratios and percentages involving expenditure data covered in this  module, it is best to use the SUMARIA-2024-12G table as the denominator to ensure consistency.
 
 ### ENAHO01A-2024-300
 **Module Name**: Educación
@@ -225,3 +238,72 @@ Comprehensive employment and labor market module capturing work status, job char
 - Workplace Structure: Employer type, business formality, accounting practices, firm size categories and exact worker counts
 Employment Conditions: Contract types, supervision responsibilities
 Compensation Structure: Multiple payment types including salary, wages, commission, piece rates, subsidies, professional fees, business profits, agricultural income, tips, in-kind payments, and unpaid work arrangements
+
+### SUMARIA-2024-12G
+**Module Name**: Sumaria por 12 Grupos de Gastos
+
+**Description**:
+Household-level summary dataset aggregating income and expenditure data across 12 consumption groups. This is the primary analytical file for poverty measurement, socioeconomic classification, and household welfare analysis in the ENAHO survey. All monetary values are annualized and standardized to a common reference period.
+
+**Business Domain**: Household Income, Expenditure & Poverty Analytics
+
+**Identifiers**: Each record represents a household uniquely identified by: ANO, MES, CONGLOME, VIVIENDA, HOGAR.
+
+**Expansion Factor**: FACTOR07 provides statistical weights for generating population-level estimates based on 2007 census projections.
+
+**Key Topics Covered**:
+- Labor Income: Gross and net income from primary and secondary employment (dependent and independent work), including monetary payments, in-kind compensation, self-consumption, and extraordinary work income
+- Non-Labor Income: Property rents, domestic and foreign transfers (private and public), social program benefits (Juntos, Pensión 65, Beca 18, various bonuses), imputed housing rent
+- Social Program Transfers: Detailed breakdown of 14+ public assistance programs including conditional cash transfers, subsidies (gas, electricity), scholarships, and emergency bonuses
+- Expenditure by 12 COICOP Groups:
+    - Group 1: Food at home
+    - Group 2: Alcoholic beverages and tobacco
+    - Group 3: Clothing and footwear
+    - Group 4: Housing, utilities, and fuels
+    - Group 5: Furniture and home maintenance
+    - Group 6: Health
+    - Group 7: Transport
+    - Group 8: Communications
+    - Group 9: Recreation, culture, and pet care
+    - Group 10: Education
+    - Group 11: Restaurants and hotels (food away from home)
+    - Group 12: Personal care and miscellaneous services
+- Expenditure by Acquisition Type: Each group disaggregated by purchase, self-consumption/self-supply, in-kind payment, public donation, private donation, and other sources
+- Housing Finance: Credits for home purchase, land acquisition, construction, and improvements
+- Aggregate Income Measures:
+    - INGMO1HD/INGMO2HD: Gross/net monetary income
+    - INGHOG1D/INGHOG2D: Total gross/net income (including non-monetary)
+    - GASHOG1D/GASHOG2D: Monetary and total expenditure
+- Welfare Classification:
+    - ESTRSOCIAL: Socioeconomic stratum (A through E, plus Rural)
+    - POBREZA: Poverty status (extreme poor, non-extreme poor, non-poor)
+    - POBREZAV: Poverty and vulnerability classification
+    - LINEA/LINPE: Total and food poverty lines
+- Household Demographics: Total members (MIEPERHO), total persons (TOTMIEHO), income earners (PERCEPHO)
+- Geographic Classification: DOMINIO (8 geographic domains), ESTRATO (8 population-based strata), UBIGEO (district-level geographic code)
+
+## Monetary Values
+There are three types of monetary variables in the survey data. Current field values are the raw amounts reported by respondents for income or expenses, recorded as given and identified with “P”. Deflated values adjust these amounts to a common point of comparison by annualizing and correcting with the Consumer Price Index (CPI), identified with “D”. Imputed values take the deflated data and fill in missing responses using median-based imputation, identified with “I”.
+
+For analysis, two distinctions are key. Nominal values correspond to the imputed data for the reference year of the survey. Real values adjust these nominal figures for inflation and geographic differences, using CPI averages and a spatial deflator with Lima Metropolitana as the base. This allows meaningful comparisons across regions and over time by removing inflationary effects.
+
+## Tables Not Included
+The following tables from the ENAHO 2024 survey are not included in this database due to their specialized nature or limited sample sizes. These modules focus on specific topics such as detailed agricultural activities, social program participation, governance, and individual income sources that may not be relevant for general household analysis:
+- Instituciones Beneficas
+- Esparcimiento y Cultura
+- Vestido y Calzado
+- Muebles y Enseres
+- Otros Bienes y Servicios
+- Produccion Agricola
+- Subproductos Agricolas
+- Produccion Forestal
+- Gastos en Actividades Agricolas y Forestales
+- Produccion Pecuaria
+- Subproductos Pecuarios
+- Gastos en Actividades Pecuarias
+- Programas Sociales
+- Ingresos del Trabajador Independiente
+- Bienes y Servicios de Cuidados Personales
+- Participación Ciudadana
+- Gobernabilidad, Democracia y Transparencia
+- Beneficios de ONGs

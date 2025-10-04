@@ -64,5 +64,3 @@ def create_esma_agent():
     """Create and return a compiled ESMA ReAct agent graph"""
     agent = ESMAAgent()
     return agent.create_graph()
-
-# agent = create_esma_agent()

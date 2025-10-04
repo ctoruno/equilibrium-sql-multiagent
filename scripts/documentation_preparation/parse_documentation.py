@@ -10,141 +10,32 @@ from google.cloud import storage
 
 load_dotenv()
 
-instructions_enaho_2024 = """
-Please parse the following information describing the content of a table in a database following this example:
 
-{
-    "tables": {
-        "ENAHO01-2024-100": {
-            "metadata": {
-                "description": "Características de la Vivienda y del Hogar (Módulo 100)",
-                "file_name": "ENAHO01-2024-100",
-                "business_domain": ["housing", "demographics", "geographic"],
-                "record_level": "household",
-                "module_number": "100"
-            },
-            "columns": {
-                "AÑO": {
-                    "description": "Año de la Encuesta",
-                    "data_type": "CHARACTER",
-                    "size": 4,
-                    "decimals": 0,
-                    "business_meaning": "Survey year identifier"
-                },
-                "DOMINIO": {
-                    "description": "Dominio Geográfico",
-                    "data_type": "NUMERIC",
-                    "size": 1,
-                    "decimals": 0,
-                    "valid_values": {
-                        "1": "Costa Norte",
-                        "2": "Costa Centro",
-                        "3": "Costa Sur",
-                        "4": "Sierra Norte",
-                        "5": "Sierra Centro",
-                        "6": "Sierra Sur",
-                        "7": "Selva",
-                        "8": "Lima Metropolitana"
-                    },
-                    "range": "1-8",
-                    "business_meaning": "Geographic domain classification"
-                },
-                "P101": {
-                    "description": "Tipo de vivienda",
-                    "data_type": "NUMERIC",
-                    "size": 1,
-                    "decimals": 0,
-                    "valid_values": {
-                        "1": "Casa independiente",
-                        "2": "Departamento en edificio",
-                        "3": "Vivienda en quinta",
-                        "4": "Vivienda en casa de vecindad (Callejón, solar o corralón)",
-                        "5": "Choza o cabaña",
-                        "6": "Vivienda improvisada",
-                        "7": "Local no destinado para habitación humana",
-                        "8": "Otro"
-                    },
-                    "range": "1-8",
-                    "business_meaning": "Housing type classification"
-                }
-            }
-        }
-    }
-}
+def read_markdown_as_string(file_name):
+  """
+  Reads the content of a Markdown file and returns it as a string.
 
-The text is in Spanish. Please analyze the PDF content and structure it according to this JSON format.
-Return only valid JSON without any additional text or markdown formatting.
-"""
+  Args:
+    file_path (str): The path to the Markdown file.
 
-instructions_geih_2024 = """
-Please parse the following information describing the content of a table in a database following this example:
-
-{
-    "tables": {
-        "DBF_GECH_45_21": {
-            "metadata": {
-                "description": "Datos del hogar y la vivienda",
-                "file_name": "DBF_GECH_45_21",
-                "business_domain": ["housing", "demographics"],
-                "record_level": "household",
-                "module_number": "45_21"
-            },
-            "columns": {
-                "MES": {
-                    "description": "Hace referencia al mes en que fue recolectada la informaciÃ³n de la encuesta.",
-                    "data_type": "CHARACTER",
-                    "size": 2,
-                    "decimals": 0,
-                    "business_meaning": "Survey month identifier"
-                },
-                "P4030S1A1": {
-                    "description": "Estrato para tarifa",
-                    "data_type": "NUMERIC",
-                    "size": 1,
-                    "decimals": 0,
-                    "valid_values": {
-                        "1": "Bajo - Bajo",
-                        "2": "Bajo",
-                        "3": "Medio - Bajo",
-                        "4": "Medio",
-                        "5": "Medio - Alto",
-                        "6": "Alto",
-                        "9": "No sabe o cuenta con planta electrica",
-                        "0": "Conexión pirata"
-                    },
-                    "range": "1-8",
-                    "business_meaning": "Socioeconomic stratum assigned for electricity billing, used to classify households."
-                },
-                "P5222S7": {
-                    "description": "¿Cuáles de los siguientes productos financieros utiliza usted o algún miembro del hogar actualmente?",
-                    "data_type": "NUMERIC",
-                    "size": 1,
-                    "decimals": 0,
-                    "valid_values": {
-                        "7": "Tarjeta de crédito"
-                    },
-                    "range": "1-1",
-                    "business_meaning": "Indicates if the household uses credit cards as a financial product."
-                }
-            }
-        }
-    }
-}
-
-Take into account the following:
-- The text is in Spanish and it contains some encoding issues for words with special characters. Please infer the correct word in those cases. 
-- Use the table description and also the content of the whole text to complete the business_domain and record_level metadata keys. If the 
-description of a table is missing, you will have to rely in the content of the text to infer it.
-- Use the "PREGUNTA LITERAL" section to extract the description of each column(variable). No need to report the question answers, just the question itself.
-If no "Pregunta Literal" section is found, pass the variable name as description.
-- Infer the business_meaning of each variable based on its description (DESCRIPCION) and the available information.
-- The valid_values dictionary should include all the possible values for a column, usually listed under CATEGORIAS section. If not available, omit this key.
-- Please analyze the content and structure it according to this JSON format. Return only valid JSON without any additional text or markdown formatting.
-"""
+  Returns:
+    str: The content of the Markdown file as a string.
+  """
+  try:
+    with open(f"scripts/documentation_preparation/{file_name}", 'r', encoding='utf-8') as f:
+      markdown_content = f.read()
+    return markdown_content
+  
+  except FileNotFoundError:
+    return f"Error: File not found at {file_name}"
+  
+  except Exception as e:
+    return f"An error occurred: {e}"
+  
 
 instructions = {
-    "enaho-2024": instructions_enaho_2024,
-    "geih-2024": instructions_geih_2024
+    "enaho-2024": read_markdown_as_string("parsing_instructions_enaho.md"),
+    "geih-2024": read_markdown_as_string("parsing_instructions_geih.md")
 }
 
 class OpenAIParser:

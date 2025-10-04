@@ -1,0 +1,362 @@
+"""
+Populate VertexAI Vector Search column indexes with schema data
+"""
+
+import os
+import json
+import time
+import logging
+import argparse
+from dataclasses import dataclass
+from typing import Dict, List, Any
+from dotenv import load_dotenv
+
+from google import genai
+from google.genai.types import EmbedContentConfig
+from google.cloud import storage
+from google.cloud import aiplatform
+from google.cloud.aiplatform import MatchingEngineIndex
+import vertexai
+
+load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+
+AVAILABLE_DATABASES = ["enaho-2024", "geih-2024"]
+
+
+@dataclass
+class DatabaseDetails:
+    """Store infrastructure details"""
+    name: str
+    source_bucket: str
+    index_id: str
+
+
+class ColumnIndexPopulator:
+    """Populates column schema data into VertexAI Vector Search indexes"""
+
+    DATABASES = {
+        "enaho-2024": DatabaseDetails(
+            name="enaho-2024",
+            source_bucket="sql-multiagent-enaho-2024",
+            index_id="3029519572383301632"
+        ),
+        "geih-2024": DatabaseDetails(
+            name="geih-2024",
+            source_bucket="sql-multiagent-geih-2024",
+            index_id="6830557657884000256"
+        )
+    }
+
+    def __init__(self, database: str):
+        """
+        Initialize the populator for a specific database
+        
+        Args:
+            database: Database name (enaho-2024, geih-2024)
+        """
+        self.database = database
+        self.project_id = os.getenv("GCP_PROJECT_ID")
+        self.region = os.getenv("GCP_REGION", "us-east1")
+        self.source_bucket = self.DATABASES[database].source_bucket
+        self.index_id = self.DATABASES[database].index_id
+        self.index_resource_name = f"projects/{self.project_id}/locations/{self.region}/indexes/{self.index_id}"
+        
+        aiplatform.init(project=self.project_id, location=self.region)
+        vertexai.init(project=self.project_id, location=self.region)
+        self.storage_client = storage.Client()
+        self.vertex_client = genai.Client(
+            vertexai=True, 
+            project=self.project_id, 
+            location=self.region
+        )
+        
+        self.embedding_model = "gemini-embedding-001"
+        
+        logger.info(f"Initialized ColumnIndexPopulator for {database}")
+    
+    
+    def load_schema_from_gcs(self, file_path: str) -> Dict[str, Any]:
+        """Load JSON schema file from GCS"""
+        try:
+            bucket = self.storage_client.bucket(self.source_bucket)
+            blob = bucket.blob(file_path)
+            content = blob.download_as_text()
+            schema_data = json.loads(content)
+            logger.info(f"Loaded schema from {file_path}")
+            return schema_data
+        
+        except Exception as e:
+            logger.error(f"Failed to load schema from {file_path}: {e}")
+            return None
+    
+    
+    def prepare_column_text(self, column_info: Dict[str, Any]) -> str:
+        """Create text for embedding from column information"""
+
+        parts = []
+        
+        if desc := column_info.get("description", "").strip():
+            parts.append(desc)
+        
+        if meaning := column_info.get("business_meaning", "").strip():
+            parts.append(meaning)
+        
+        if valid_values := column_info.get("valid_values", {}):
+            if isinstance(valid_values, dict):
+                categories = [f"{k}={v}" for k, v in valid_values.items()]
+                if categories:
+                    parts.append(f"Values: {', '.join(categories)}")
+        
+        return " | ".join(filter(None, parts))
+    
+    
+    def process_table_columns(self, schema_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Process all columns from a schema file"""
+        
+        processed_columns = []
+        
+        for table_name, table_info in schema_data.get("tables", {}).items():
+            columns = table_info.get("columns", {})
+            
+            for column_name, column_info in columns.items():
+                column_name_clean = column_name.replace("Ñ", "N").replace("$", "_")
+                embedding_text = self.prepare_column_text(column_info)
+                
+                if not embedding_text:
+                    logger.warning(f"Skipping column {column_name_clean} in {table_name} due to lack of description")
+                    continue
+                
+                record = {
+                    "id": f"{table_name}_{column_name_clean}",
+                    "text": embedding_text,
+                    "metadata": {
+                        "table_id": table_name,
+                        "column_name": column_name_clean,
+                        "data_type": column_info.get("data_type", ""),
+                        "description": column_info.get("description", "")
+                    }
+                }
+                
+                processed_columns.append(record)
+        
+        return processed_columns
+    
+    
+    def generate_embeddings(self, texts: List[str], batch_size: int = 100) -> List[List[float]]:
+        """Generate embeddings using VertexAI text embedding model"""
+        
+        all_embeddings = []
+        
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i:i + batch_size]
+            
+            try:
+                response = self.vertex_client.models.embed_content(
+                    model=self.embedding_model,
+                    contents=batch_texts,
+                    config=EmbedContentConfig(
+                        task_type="RETRIEVAL_DOCUMENT",
+                        output_dimensionality=3072
+                    )
+                )
+                
+                for embedding in response.embeddings:
+                    all_embeddings.append(embedding.values)
+                
+                logger.info(f"Generated embeddings for batch {i//batch_size + 1}")
+                
+            except Exception as e:
+                logger.error(f"Failed to generate embeddings: {e}")
+                raise
+        
+        return all_embeddings
+    
+
+    def upload_to_index(self, records: List[Dict[str, Any]], index_id: str) -> None:
+        """
+        Upload records to index via batch update using JSONL file in GCS.
+        """
+        try:
+            jsonl_lines = []
+            for record in records:
+                datapoint = {
+                    "id": record["id"],
+                    "embedding": record["embedding"],
+                    "restricts": [
+                        {"namespace": "table_id", "allow": [record["metadata"]["table_id"]]}
+                    ],
+                    "embedding_metadata": {
+                        "column_name": record["metadata"]["column_name"],
+                        "text": record["text"],
+                        "table_id": record["metadata"]["table_id"],
+                        "data_type": record["metadata"]["data_type"]
+                    }
+                }
+                jsonl_lines.append(json.dumps(datapoint))
+            
+            jsonl_content = "\n".join(jsonl_lines)
+            
+            gcs_path = "vectors/columns.json"
+            bucket = self.storage_client.bucket(self.source_bucket)
+            blob = bucket.blob(gcs_path)
+            blob.upload_from_string(jsonl_content, content_type="application/jsonl")
+            
+            gcs_uri = f"gs://{self.source_bucket}/{gcs_path}"
+            logger.info(f"Uploaded JSONL to {gcs_uri}")
+            
+            # self._trigger_batch_update_with_retry(
+            #     index_id, 
+            #     f"gs://{self.source_bucket}/vectors/", 
+            #     max_retries=3
+            # )
+            # logger.info(f"Successfully uploaded {len(records)} records to index {index_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to upload to index: {e}")
+            raise
+        
+
+    def _trigger_batch_update_with_retry(self, index_id: str, gcs_uri: str, max_retries: int = 3) -> None:
+        """
+        Trigger batch update and wait for completion with retry logic.
+        
+        Args:
+            index_id: The index resource name
+            gcs_uri: GCS URI of the JSONL file
+            max_retries: Maximum number of retry attempts
+        """
+        index = MatchingEngineIndex(index_name=index_id)
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(f"Triggering batch update (attempt {attempt}/{max_retries})")
+                
+                operation = index.update_embeddings(
+                    contents_delta_uri=gcs_uri
+                )
+                
+                logger.info("Batch update operation started, waiting for completion...")
+                operation.wait()
+                
+                logger.info("✅ Batch update completed successfully")
+                return
+                
+            except Exception as e:
+                logger.error(f"Batch update attempt {attempt} failed: {e}")
+                
+                if attempt == max_retries:
+                    logger.error(f"All {max_retries} retry attempts failed")
+                    raise
+                
+                # Wait before retrying (exponential backoff)
+                wait_time = 2 ** attempt * 10  # 20s, 40s, 80s
+                logger.info(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+        
+    # UPLOAD METHOD FOR STREAM_UPDATE INDEXES (NO LONGER USED)
+    # def upload_to_index(self, records: List[Dict[str, Any]], index_id: str) -> None:
+    #     """
+    #     Upload records directly to the index. JSON needs to follow a specific structure.
+    #     See: https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.IndexDatapoint
+    #     """
+    #     try:
+    #         index = MatchingEngineIndex(index_name=index_id)
+            
+    #         datapoints = []
+    #         for record in records:
+    #             datapoint = {
+    #                 "datapoint_id": record["id"],
+    #                 "feature_vector": record["embedding"],
+    #                 "restricts": [
+    #                     {"namespace": "table_id", "allow_list": [record["metadata"]["table_id"]]}
+    #                 ],
+    #                 "embedding_metadata": {
+    #                     "column_name": record["metadata"]["column_name"],
+    #                     "text": record["text"],
+    #                     "table_id": record["metadata"]["table_id"],
+    #                     "data_type": record["metadata"]["data_type"]
+    #                 }
+    #             }
+    #             datapoints.append(datapoint)
+            
+    #         batch_size = 100
+    #         for i in range(0, len(datapoints), batch_size):
+    #             batch = datapoints[i:i + batch_size]
+    #             index.upsert_datapoints(datapoints=batch)
+    #             logger.info(f"Uploaded batch {i//batch_size + 1} to index")
+    #             time.sleep(7)  # To avoid rate limits
+            
+    #         logger.info(f"Successfully uploaded {len(records)} records to index {index_id}")
+            
+    #     except Exception as e:
+    #         logger.error(f"Failed to upload to index: {e}")
+    #         raise
+    
+    
+    def populate_database_columns(self) -> None:
+        """Main method to populate column index for the database"""
+        
+        logger.info(f"Starting column population for {self.database}")
+        
+        bucket = self.storage_client.bucket(self.source_bucket)
+        blobs = bucket.list_blobs(prefix="dictionaries/")
+        json_files = [blob.name for blob in blobs if blob.name.endswith(".json")]
+        
+        if not json_files:
+            logger.warning(f"No schema files found for {self.database}")
+            return
+        
+        all_columns = []
+        for file_path in json_files:
+            schema_data = self.load_schema_from_gcs(file_path)
+            if schema_data:
+                columns = self.process_table_columns(schema_data)
+                all_columns.extend(columns)
+                logger.info(f"Processed {len(columns)} columns from {file_path}")
+        
+        if not all_columns:
+            logger.warning("No columns found to process")
+            return
+        
+        logger.info(f"Total columns to process: {len(all_columns)}")
+        
+        texts = [col["text"] for col in all_columns]
+        embeddings = self.generate_embeddings(texts)
+        
+        for i, col in enumerate(all_columns):
+            col["embedding"] = embeddings[i]
+        
+        self.upload_to_index(all_columns, self.index_resource_name)
+        
+        logger.info(f"✅ Successfully populated {self.database} column index with {len(all_columns)} records")
+
+
+def main():
+    """Main function"""
+    parser = argparse.ArgumentParser(description="Populate column index for a database")
+    parser.add_argument("--database", required=True, help="Database name (enaho-2024, geih-2024)")
+    
+    args = parser.parse_args()
+    
+    if args.database not in AVAILABLE_DATABASES:
+        logger.error("Database must be an available option")
+        return
+    
+    try:
+        populator = ColumnIndexPopulator(args.database)
+        populator.populate_database_columns()
+        
+    except Exception as e:
+        logger.error(f"Failed to populate columns: {e}")
+        raise
+
+
+if __name__ == "__main__":
+    main()
