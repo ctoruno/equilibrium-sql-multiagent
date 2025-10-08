@@ -3,7 +3,7 @@ Tool for retrieving table descriptions from markdown files and listing available
 """
 
 import json
-from typing import Literal
+from typing import Literal, Type
 
 from pydantic import BaseModel, Field
 from langchain.tools import BaseTool
@@ -32,7 +32,7 @@ class TableDescriptionRetriever(BaseTool):
     - Identification of any discrepancies between documentation and actual tables
     Use this to understand what tables are available and their business context.
     """
-    args_schema = TableDescriptionRetrieverInput
+    args_schema: Type[BaseModel] = TableDescriptionRetrieverInput
     
     
     def _run(self, database: str) -> str:

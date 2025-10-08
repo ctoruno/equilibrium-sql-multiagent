@@ -4,7 +4,7 @@ SQL Executor tool for executing validated SQL queries against BigQuery
 
 import json
 import logging
-from typing import Literal, Dict, Any
+from typing import Literal, Dict, Any, Type
 
 from pydantic import BaseModel, Field
 from langchain.tools import BaseTool
@@ -37,7 +37,7 @@ class SQLExecutor(BaseTool):
     Use this after the query has been validated by the schema_validator.
     Returns the query results as structured data or an error message if execution fails.
     """
-    args_schema = SQLExecutorInput
+    args_schema: Type[BaseModel] = SQLExecutorInput
     
     
     def _run(self, sql_query: str, database: str) -> str:

@@ -3,13 +3,12 @@ Schema Gatherer tool for retrieving table schemas and sample data from BigQuery
 """
 
 import json
-from typing import Literal, Dict, Any, List
+from typing import Literal, Type
 
 from pydantic import BaseModel, Field
 from langchain.tools import BaseTool
 
 from esma.utils.bigquery_client import BigQueryClient
-from esma.config.settings import settings
 
 
 class SchemaGathererInput(BaseModel):
@@ -39,7 +38,7 @@ class SchemaGatherer(BaseTool):
     Input: comma-separated table names and database
     Returns: schema details and sample rows for each table
     """
-    args_schema = SchemaGathererInput
+    args_schema: Type[BaseModel] = SchemaGathererInput
     
     
     def _run(self, tables: str, database: str) -> str:

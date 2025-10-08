@@ -3,7 +3,7 @@ Column Retriever Tool using VertexAI Embeddings and Vector Search.
 """
 
 import json
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional, Literal, Type
 
 from google import genai
 from google.cloud import aiplatform_v1
@@ -34,7 +34,7 @@ class ColumnRetriever(BaseTool):
     to generate SQL queries. Returns column metadata including names,
     descriptions, data types, and valid values.
     """
-    args_schema = ColumnRetrieverInput
+    args_schema: Type[BaseModel] = ColumnRetrieverInput
 
     _vertex_client: genai.Client = PrivateAttr()
     _vector_search_client: aiplatform_v1.MatchServiceClient = PrivateAttr()

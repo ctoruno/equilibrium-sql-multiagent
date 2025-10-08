@@ -4,9 +4,8 @@ SQL Schema Validator tool for validating queries against BigQuery schema
 
 import re
 import json
-from typing import List, Dict, Literal
+from typing import List, Dict, Literal, Type
 
-from sqlalchemy import text
 from pydantic import BaseModel, Field
 from langchain.tools import BaseTool
 
@@ -31,7 +30,7 @@ class SchemaValidator(BaseTool):
     Checks that tables and columns exist, and prevents dangerous operations.
     Returns validation results with specific error details if validation fails.
     """
-    args_schema = SchemaValidatorInput
+    args_schema: Type[BaseModel] = SchemaValidatorInput
     
     
     def _run(self, sql_query: str, database: str) -> str:

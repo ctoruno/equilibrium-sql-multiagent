@@ -61,9 +61,9 @@ class Settings(BaseSettings):
     messages_to_keep: int = 3
 
     # Local LangGraph Platform Development
-    langsmith_tracing: bool
-    langsmith_endpoint: str
-    langsmith_project: str
+    langsmith_tracing: bool = False
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_project: str = "esma"
     langsmith_api_key: Optional[str] = None
 
     class Config:
