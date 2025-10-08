@@ -30,7 +30,7 @@ class ReActAgent:
         Initialize the base ReAct SQL agent.
 
         Args:
-            database_name: Either "enaho" or "geih"
+            database_name: Either "enaho", "geih", "ephc", or "enemdu"
         """
         self.llm: BaseChatModel = init_chat_model(
             settings.default_model,

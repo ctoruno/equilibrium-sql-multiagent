@@ -22,7 +22,7 @@ class BigQueryClient:
         Initialize BigQuery client for a specific database
         
         Args:
-            database_name: Name of the database (enaho or geih)
+            database_name: Name of the database
         """
         self.database_name = database_name
         self.dataset_id = self._get_dataset_id(database_name)
@@ -45,7 +45,7 @@ class BigQueryClient:
         Get or create a client for a specific database
         
         Args:
-            database_name: Name of the database (enaho or geih)
+            database_name: Name of the database
             
         Returns:
             BigQueryClient instance for the database

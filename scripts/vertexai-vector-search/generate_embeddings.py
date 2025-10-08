@@ -1,10 +1,9 @@
 """
-Populate VertexAI Vector Search column indexes with schema data
+Generate embeddings for a database data dictionary using VertexAI
 """
 
 import os
 import json
-import time
 import logging
 import argparse
 from dataclasses import dataclass
@@ -15,7 +14,6 @@ from google import genai
 from google.genai.types import EmbedContentConfig
 from google.cloud import storage
 from google.cloud import aiplatform
-from google.cloud.aiplatform import MatchingEngineIndex
 import vertexai
 
 load_dotenv()
@@ -27,7 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-AVAILABLE_DATABASES = ["enaho-2024", "geih-2024"]
+AVAILABLE_DATABASES = ["enaho-2024", "geih-2024", "ephc-2024", "enemdu-2024"]
 
 
 @dataclass
@@ -35,7 +33,6 @@ class DatabaseDetails:
     """Store infrastructure details"""
     name: str
     source_bucket: str
-    index_id: str
 
 
 class ColumnIndexPopulator:
@@ -44,13 +41,19 @@ class ColumnIndexPopulator:
     DATABASES = {
         "enaho-2024": DatabaseDetails(
             name="enaho-2024",
-            source_bucket="sql-multiagent-enaho-2024",
-            index_id="3029519572383301632"
+            source_bucket="sql-multiagent-enaho-2024"
         ),
         "geih-2024": DatabaseDetails(
             name="geih-2024",
-            source_bucket="sql-multiagent-geih-2024",
-            index_id="6830557657884000256"
+            source_bucket="sql-multiagent-geih-2024"
+        ),
+        "ephc-2024": DatabaseDetails(
+            name="ephc-2024",
+            source_bucket="sql-multiagent-ephc-2024"
+        ),
+        "enemdu-2024": DatabaseDetails(
+            name="enemdu-2024",
+            source_bucket="sql-multiagent-enemdu-2024"
         )
     }
 
@@ -59,14 +62,13 @@ class ColumnIndexPopulator:
         Initialize the populator for a specific database
         
         Args:
-            database: Database name (enaho-2024, geih-2024)
+            database: Database name (enaho-2024, geih-2024, ephc-2024)
         """
         self.database = database
         self.project_id = os.getenv("GCP_PROJECT_ID")
         self.region = os.getenv("GCP_REGION", "us-east1")
         self.source_bucket = self.DATABASES[database].source_bucket
-        self.index_id = self.DATABASES[database].index_id
-        self.index_resource_name = f"projects/{self.project_id}/locations/{self.region}/indexes/{self.index_id}"
+        self.target_bucket = "sql-multiagent-column-vectors"
         
         aiplatform.init(project=self.project_id, location=self.region)
         vertexai.init(project=self.project_id, location=self.region)
@@ -179,9 +181,9 @@ class ColumnIndexPopulator:
         return all_embeddings
     
 
-    def upload_to_index(self, records: List[Dict[str, Any]], index_id: str) -> None:
+    def upload_to_gcs(self, records: List[Dict[str, Any]]) -> None:
         """
-        Upload records to index via batch update using JSONL file in GCS.
+        Upload records to GCS as a JSONL file.
         """
         try:
             jsonl_lines = []
@@ -190,6 +192,7 @@ class ColumnIndexPopulator:
                     "id": record["id"],
                     "embedding": record["embedding"],
                     "restricts": [
+                        {"namespace": "database", "allow": [self.database]},
                         {"namespace": "table_id", "allow": [record["metadata"]["table_id"]]}
                     ],
                     "embedding_metadata": {
@@ -203,105 +206,23 @@ class ColumnIndexPopulator:
             
             jsonl_content = "\n".join(jsonl_lines)
             
-            gcs_path = "vectors/columns.json"
-            bucket = self.storage_client.bucket(self.source_bucket)
-            blob = bucket.blob(gcs_path)
+            file_name = f"{self.database}-vectors.json"
+            bucket = self.storage_client.bucket(self.target_bucket)
+            blob = bucket.blob(file_name)
             blob.upload_from_string(jsonl_content, content_type="application/jsonl")
-            
-            gcs_uri = f"gs://{self.source_bucket}/{gcs_path}"
+
+            gcs_uri = f"gs://{self.target_bucket}/{file_name}"
             logger.info(f"Uploaded JSONL to {gcs_uri}")
             
-            # self._trigger_batch_update_with_retry(
-            #     index_id, 
-            #     f"gs://{self.source_bucket}/vectors/", 
-            #     max_retries=3
-            # )
-            # logger.info(f"Successfully uploaded {len(records)} records to index {index_id}")
-            
         except Exception as e:
-            logger.error(f"Failed to upload to index: {e}")
+            logger.error(f"Failed to upload to GCS: {e}")
             raise
-        
-
-    def _trigger_batch_update_with_retry(self, index_id: str, gcs_uri: str, max_retries: int = 3) -> None:
-        """
-        Trigger batch update and wait for completion with retry logic.
-        
-        Args:
-            index_id: The index resource name
-            gcs_uri: GCS URI of the JSONL file
-            max_retries: Maximum number of retry attempts
-        """
-        index = MatchingEngineIndex(index_name=index_id)
-        
-        for attempt in range(1, max_retries + 1):
-            try:
-                logger.info(f"Triggering batch update (attempt {attempt}/{max_retries})")
-                
-                operation = index.update_embeddings(
-                    contents_delta_uri=gcs_uri
-                )
-                
-                logger.info("Batch update operation started, waiting for completion...")
-                operation.wait()
-                
-                logger.info("✅ Batch update completed successfully")
-                return
-                
-            except Exception as e:
-                logger.error(f"Batch update attempt {attempt} failed: {e}")
-                
-                if attempt == max_retries:
-                    logger.error(f"All {max_retries} retry attempts failed")
-                    raise
-                
-                # Wait before retrying (exponential backoff)
-                wait_time = 2 ** attempt * 10  # 20s, 40s, 80s
-                logger.info(f"Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-        
-    # UPLOAD METHOD FOR STREAM_UPDATE INDEXES (NO LONGER USED)
-    # def upload_to_index(self, records: List[Dict[str, Any]], index_id: str) -> None:
-    #     """
-    #     Upload records directly to the index. JSON needs to follow a specific structure.
-    #     See: https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform_v1.types.IndexDatapoint
-    #     """
-    #     try:
-    #         index = MatchingEngineIndex(index_name=index_id)
-            
-    #         datapoints = []
-    #         for record in records:
-    #             datapoint = {
-    #                 "datapoint_id": record["id"],
-    #                 "feature_vector": record["embedding"],
-    #                 "restricts": [
-    #                     {"namespace": "table_id", "allow_list": [record["metadata"]["table_id"]]}
-    #                 ],
-    #                 "embedding_metadata": {
-    #                     "column_name": record["metadata"]["column_name"],
-    #                     "text": record["text"],
-    #                     "table_id": record["metadata"]["table_id"],
-    #                     "data_type": record["metadata"]["data_type"]
-    #                 }
-    #             }
-    #             datapoints.append(datapoint)
-            
-    #         batch_size = 100
-    #         for i in range(0, len(datapoints), batch_size):
-    #             batch = datapoints[i:i + batch_size]
-    #             index.upsert_datapoints(datapoints=batch)
-    #             logger.info(f"Uploaded batch {i//batch_size + 1} to index")
-    #             time.sleep(7)  # To avoid rate limits
-            
-    #         logger.info(f"Successfully uploaded {len(records)} records to index {index_id}")
-            
-    #     except Exception as e:
-    #         logger.error(f"Failed to upload to index: {e}")
-    #         raise
     
     
-    def populate_database_columns(self) -> None:
-        """Main method to populate column index for the database"""
+    def run_pipeline(self) -> None:
+        """
+        Run the full pipeline to generate and upload column embeddings
+        """
         
         logger.info(f"Starting column population for {self.database}")
         
@@ -333,9 +254,9 @@ class ColumnIndexPopulator:
         for i, col in enumerate(all_columns):
             col["embedding"] = embeddings[i]
         
-        self.upload_to_index(all_columns, self.index_resource_name)
+        self.upload_to_gcs(all_columns)
         
-        logger.info(f"✅ Successfully populated {self.database} column index with {len(all_columns)} records")
+        logger.info(f"✅ Successfully generated column embeddings for {self.database} with {len(all_columns)} records")
 
 
 def main():
@@ -351,7 +272,7 @@ def main():
     
     try:
         populator = ColumnIndexPopulator(args.database)
-        populator.populate_database_columns()
+        populator.run_pipeline()
         
     except Exception as e:
         logger.error(f"Failed to populate columns: {e}")

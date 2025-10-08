@@ -15,9 +15,9 @@ from esma.config.settings import settings
 class SchemaGathererInput(BaseModel):
     """Input schema for SchemaGatherer tool."""
     tables: str = Field(
-        description="Comma-separated list of table names to get schema for (e.g., 'table1,table2,table3')"
+        description="Comma-separated list of table names to get schema for (e.g., 'table1, table2, table3')"
     )
-    database: Literal["enaho", "geih"] = Field(
+    database: Literal["enaho", "geih", "ephc", "enemdu"] = Field(
         description="Target database"
     )
 

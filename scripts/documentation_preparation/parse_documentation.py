@@ -10,6 +10,7 @@ from google.cloud import storage
 
 load_dotenv()
 
+DATABASES = ["enaho-2024", "geih-2024", "ephc-2024"]
 
 def read_markdown_as_string(file_name):
   """
@@ -35,8 +36,10 @@ def read_markdown_as_string(file_name):
 
 instructions = {
     "enaho-2024": read_markdown_as_string("parsing_instructions_enaho.md"),
-    "geih-2024": read_markdown_as_string("parsing_instructions_geih.md")
+    "geih-2024": read_markdown_as_string("parsing_instructions_geih.md"),
+    "ephc-2024": read_markdown_as_string("parsing_instructions_ephc.md")
 }
+
 
 class OpenAIParser:
     def __init__(self, survey: str):
@@ -53,8 +56,8 @@ class OpenAIParser:
         if not self.gcs_client:
                 raise Exception("GCP client not initialized. Please provide credentials.")
         
-        if survey not in ["enaho-2024", "geih-2024"]:
-            raise ValueError("Survey must be either 'enaho-2024' or 'geih-2024'")
+        if survey not in DATABASES:
+            raise ValueError("Survey must a valid database name")
         else:
             self.survey = survey
             self.instruction = instructions[self.survey]
@@ -62,6 +65,8 @@ class OpenAIParser:
                 self.bucket_name = "sql-multiagent-enaho-2024"
             if self.survey == "geih-2024":
                 self.bucket_name = "sql-multiagent-geih-2024"
+            if self.survey == "ephc-2024":
+                self.bucket_name = "sql-multiagent-ephc-2024"
             
 
     def list_files_in_bucket(self, prefix: str, format: str) -> list:
@@ -224,8 +229,8 @@ def main():
     
     args = parser.parse_args()
 
-    if args.survey not in ["enaho-2024", "geih-2024"]:
-        print("❌ Error: Survey must be either 'enaho-2024' or 'geih-2024'")
+    if args.survey not in DATABASES:
+        print("❌ Error: Survey must be a valid database")
         return 1
     else:
         print(f"✅ Survey selected: {args.survey}")
@@ -233,7 +238,7 @@ def main():
     try:
         parser = OpenAIParser(survey=args.survey)
         
-        if args.survey in ["enaho-2024"]:
+        if args.survey in ["enaho-2024", "ephc-2024"]:
             pdf_files = parser.list_files_in_bucket(prefix="dictionaries/", format=".pdf")
             if not pdf_files:
                 print("No PDF files found in the specified bucket.")

@@ -19,7 +19,7 @@ class SQLExecutorInput(BaseModel):
     sql_query: str = Field(
         description="Validated SQL query to execute against the database"
     )
-    database: Literal["enaho", "geih"] = Field(
+    database: Literal["enaho", "geih", "ephc", "enemdu"] = Field(
         description="Target database to execute the query against"
     )
 
@@ -46,7 +46,7 @@ class SQLExecutor(BaseTool):
         
         Args:
             sql_query: The validated SQL query to execute
-            database: The target database ("enaho" or "geih")
+            database: The target database ("enaho", "geih", "ephc")
             
         Returns:
             JSON string with execution results or error information

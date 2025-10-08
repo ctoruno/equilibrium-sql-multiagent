@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-AVAILABLE_DATABASES = ["enaho-2024", "geih-2024"]
-
 @dataclass
 class IndexConfig:
     """Configuration for a Vector Search index"""
@@ -46,7 +44,6 @@ class InfrastructureDetails:
     deployed_index_id: str
     created_at: str
     config_type: str
-    database: str
 
 
 class VectorSearchInfrastructure:
@@ -96,31 +93,30 @@ class VectorSearchInfrastructure:
     
     def _create_index(
         self,
-        database: str,
         config_type: str
     ) -> MatchingEngineIndex:
         """
         Create a Vector Search index
         
         Args:
-            database: Database name (enaho-2024, geih-2024)
             config_type: Type of index (columns or docs)
             
         Returns:
             Created MatchingEngineIndex instance
         """
         config = self.CONFIGS[config_type]
-        index_name = f"{database}-{config.name}"
-        # JSON files inside GCS directory need to be in a specific format: https://cloud.google.com/vertex-ai/docs/vector-search/format-structure#data-file-formats
-        gcs_uri = f"gs://sql-multiagent-{database}/vectors/"
+        index_name = "esma-vector-search-index"
+        # JSON files inside GCS directory need to be in a specific format: 
+        # https://cloud.google.com/vertex-ai/docs/vector-search/format-structure#data-file-formats
+        gcs_uri = "gs://sql-multiagent-column-vectors"
         shard_size = config.shard_size
         
         logger.info(f"Creating index: {index_name}")
         
         try:
             index = MatchingEngineIndex.create_tree_ah_index(
-                display_name = f"{database.upper()}-{config.name}",
-                description  = f"{config.description} for {database.upper()}",
+                display_name = f"esma-vector-search-index-{config.name}",
+                description  = f"{config.description} for esma-vector-search-index",
                 dimensions   = config.dimensions,
                 approximate_neighbors_count = 75,
                 index_update_method = "BATCH_UPDATE",
@@ -141,31 +137,29 @@ class VectorSearchInfrastructure:
         except Exception as e:
             logger.error(f"Failed to create index {index_name}: {e}")
             raise
-    
-    
+
+
     def _create_endpoint(
         self,
-        database: str,
         config_type: str,
     ) -> MatchingEngineIndexEndpoint:
         """
         Create an index endpoint for serving queries
         
         Args:
-            database: Database name
             config_type: Type of index
             
         Returns:
             Created MatchingEngineIndexEndpoint instance
         """
-        endpoint_name = f"{database.upper()}-{config_type}-endpoint"
+        endpoint_name = f"esma-vector-search-index-{config_type}-endpoint"
         
         logger.info(f"Creating endpoint: {endpoint_name}")
         
         try:
             endpoint = MatchingEngineIndexEndpoint.create(
                 display_name = endpoint_name,
-                description = f"Endpoint for {database} {config_type} index",
+                description = f"Endpoint for esma-vector-search-index {config_type} index",
                 public_endpoint_enabled = True
             )
             
@@ -181,7 +175,6 @@ class VectorSearchInfrastructure:
         self,
         index: MatchingEngineIndex,
         endpoint: MatchingEngineIndexEndpoint,
-        database: str,
         config_type: str
     ) -> str:
         """
@@ -190,14 +183,13 @@ class VectorSearchInfrastructure:
         Args:
             index: The index to deploy
             endpoint: The endpoint to deploy to
-            database: Database name
             config_type: Type of index
             
         Returns:
             Deployed index ID
         """
         config = self.CONFIGS[config_type]
-        deployed_index_id = f"{database.replace('-', '_')}_{config_type}_dp"
+        deployed_index_id = f"esma_vector_search_index_{config_type}"
         machine_type = config.machine_type
         
         logger.info(f"Deploying index {index.display_name} to endpoint {endpoint.display_name}")
@@ -221,7 +213,6 @@ class VectorSearchInfrastructure:
     
     def setup_infrastructure_for_database(
         self,
-        database: str,
         config_type: str
     ) -> InfrastructureDetails:
         """
@@ -234,11 +225,11 @@ class VectorSearchInfrastructure:
         Returns:
             InfrastructureDetails with all resource information
         """
-        logger.info(f"Setting up infrastructure for {database} - {config_type}")
+        logger.info(f"Setting up infrastructure - {config_type}")
         
-        index = self._create_index(database, config_type)
-        endpoint = self._create_endpoint(database, config_type)        
-        deployed_id = self._deploy_index_to_endpoint(index, endpoint, database, config_type)
+        index = self._create_index(config_type)
+        endpoint = self._create_endpoint(config_type)        
+        deployed_id = self._deploy_index_to_endpoint(index, endpoint, config_type)
         
         details = InfrastructureDetails(
             index_id=index.name.split("/")[-1],
@@ -247,15 +238,26 @@ class VectorSearchInfrastructure:
             endpoint_resource_name=endpoint.resource_name,
             deployed_index_id=deployed_id,
             created_at=datetime.now().isoformat(),
-            config_type=config_type,
-            database=database
+            config_type=config_type
         )
         
-        key = f"{database}-{config_type}"
+        key = f"esma-vector-search-index-{config_type}"
         self.infrastructure[key] = details
         
         logger.info(f"Infrastructure setup complete for {key}")
         return details
+    
+
+    def update_column_embeddings(self) -> None:
+        """Update a vector search index with new embeddings from GCS"""
+        gcs_uri: str = "gs://sql-multiagent-column-vectors"
+        index_name = "projects/514700908055/locations/us-east1/indexes/2137666108675588096"
+        index = aiplatform.MatchingEngineIndex(index_name=index_name)
+        index.update_embeddings(
+            contents_delta_uri=gcs_uri, 
+            is_complete_overwrite=False
+        )
+        logger.info(f"Updated columns embeddings from {gcs_uri}")
     
     
     def get_infrastructure_status(self) -> None:
@@ -284,32 +286,37 @@ class VectorSearchInfrastructure:
 def main():
     """Main function to run infrastructure setup"""
     parser = argparse.ArgumentParser(description="Set up VertexAI Vector Search infrastructure")
-    parser.add_argument("--database", help="Specific database to setup")
     parser.add_argument("--type", choices=["columns", "docs"], help="Specific type to setup")
+    parser.add_argument("--create", action="store_true", help="Flag to create infrastructure", default=False)
+    parser.add_argument("--update", action="store_true", help="Flag to update infrastructure", default=False)
     
     args = parser.parse_args()
 
-    if args.database not in AVAILABLE_DATABASES:
-        logger.error("Database must be an available option")
-        return
-    
-    infra = VectorSearchInfrastructure(
-        project_id=os.getenv("GCP_PROJECT_ID"),
-        region=os.getenv("GCP_REGION", "us-east1")
-    )
-    
-    try:
-        infra.setup_infrastructure_for_database(
-            database=args.database,
-            config_type=args.type
+    if args.create:
+        infra = VectorSearchInfrastructure(
+            project_id=os.getenv("GCP_PROJECT_ID"),
+            region=os.getenv("GCP_REGION", "us-east1")
         )
-        infra.get_infrastructure_status()
         
-        logger.info("✅ Infrastructure setup completed successfully!")
-        
-    except Exception as e:
-        logger.error(f"❌ Infrastructure setup failed: {e}")
-        raise
+        try:
+            infra.setup_infrastructure_for_database(
+                config_type=args.type
+            )
+            infra.get_infrastructure_status()
+            
+            logger.info("✅ Infrastructure setup completed successfully!")
+            
+        except Exception as e:
+            logger.error(f"❌ Infrastructure setup failed: {e}")
+            raise
+    
+    if args.update and args.type == "columns":
+        infra = VectorSearchInfrastructure(
+            project_id=os.getenv("GCP_PROJECT_ID"),
+            region=os.getenv("GCP_REGION", "us-east1")
+        )
+        infra.update_column_embeddings()
+        logger.info("✅ Infrastructure update completed successfully!")
 
 
 if __name__ == "__main__":

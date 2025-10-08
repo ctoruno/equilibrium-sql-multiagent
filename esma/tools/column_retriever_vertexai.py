@@ -17,7 +17,7 @@ from esma.config.settings import settings
 class ColumnRetrieverInput(BaseModel):
     """Input schema for ColumnRetriever tool."""
     query: str = Field(description="Natural language query to search for relevant columns")
-    database: Literal["enaho", "geih"] = Field(description="Database name ('enaho' or 'geih')")
+    database: Literal["enaho", "geih", "ephc", "enemdu"] = Field(description="Database name ('enaho', 'geih', 'ephc', 'enemdu')")
     selected_tables: List[str] = Field(description="List of table IDs to filter by")
 
 
@@ -56,14 +56,18 @@ class ColumnRetriever(BaseTool):
     def _run(self, query: str, database: str, selected_tables: List[str]) -> str:
         """
         Execute the column retrieval tool.
-        
+
+        Args:
+            sql_query: The query to execute
+            database: The target database ("enaho", "geih", "ephc", "enemdu")
+
         Returns:
             JSON string with retrieval results
         """
 
-        api_endpoint = settings.vertex_api_endpoint.get(database)
-        index_endpoint = settings.vertex_index_endpoints.get(database)
-        deployed_index_id = settings.vertex_deployed_indexes.get(database)
+        api_endpoint = settings.vertex_api_endpoint.get("columns")
+        index_endpoint = settings.vertex_index_endpoints.get("columns")
+        deployed_index_id = settings.vertex_deployed_indexes.get("columns")
         
         if not all([api_endpoint, index_endpoint, deployed_index_id]):
             return self._format_response({
@@ -114,6 +118,7 @@ class ColumnRetriever(BaseTool):
                 index_endpoint,
                 deployed_index_id,
                 query_embedding,
+                database,
                 selected_tables
             )
             
@@ -165,11 +170,17 @@ class ColumnRetriever(BaseTool):
             index_endpoint: str,
             deployed_index_id: str,
             query_embedding: List[float],
-            selected_tables: List[str]
+            database: str,
+            selected_tables: List[str],
+            year: str = "2024"
     ) -> List:
         """Search VertexAI Vector Search index."""
         
         restricts = [
+            aiplatform_v1.IndexDatapoint.Restriction(
+                namespace="database",
+                allow_list=[f"{database}-{year}"]
+            ),
             aiplatform_v1.IndexDatapoint.Restriction(
                 namespace="table_id",
                 allow_list=selected_tables

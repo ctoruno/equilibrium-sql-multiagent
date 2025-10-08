@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     google_application_credentials: Optional[str] = None
     dataset_ids: Dict[str, str] = {
         "enaho": "enaho_2024",
-        "geih": "geih_2024"
+        "geih": "geih_2024",
+        "ephc": "ephc_2024",
+        "enemdu": "enemdu_2024"
     }
 
     # SQL
@@ -36,16 +38,13 @@ class Settings(BaseSettings):
     max_column_retrieval_results: int = 15
     vertex_location: str = "us-east1"
     vertex_api_endpoint: Dict[str, str] = {
-        "enaho": "1799297254.us-east1-514700908055.vdb.vertexai.goog",
-        "geih": "2141955479.us-east1-514700908055.vdb.vertexai.goog"
+        "columns": "1794278526.us-east1-514700908055.vdb.vertexai.goog"
     }
     vertex_index_endpoints: Dict[str, str] = {
-        "enaho": "projects/514700908055/locations/us-east1/indexEndpoints/3366058091412979712",
-        "geih": "projects/514700908055/locations/us-east1/indexEndpoints/5723692496341434368"
+        "columns": "projects/514700908055/locations/us-east1/indexEndpoints/6544755003406417920"
     }
     vertex_deployed_indexes: Dict[str, str] = {
-        "enaho": "enaho_2024_columns_dp",
-        "geih": "geih_2024_columns_dp"
+        "columns": "esma_vector_search_index_columns"
     }
     vertex_embedding_model: str = "gemini-embedding-001"
     vertex_embedding_dimension: int = 3072

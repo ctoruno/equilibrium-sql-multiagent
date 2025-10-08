@@ -2,7 +2,7 @@
 The 2024 National Household Survey (ENAHO), conducted by the National Institute of Statistics and Informatics (INEI), is an ongoing survey that has measured the living conditions, poverty, and well-being of Peruvian households since 1995. Its coverage is national, encompassing urban and rural areas of the 24 departments and the Constitutional Province of Callao, through mixed interviews (in-person and by telephone). The 2024 sample comprises 36,594 households and allows for the generation of indicators on poverty, employment, health, education, spending, social programs, governance, and other social and economic aspects, with inference levels from the national to the departmental level.
 
 ## Tables
-The enaho-2024 database is composed by 11 different tables:
+The enaho-2024 database is composed by 12 different tables:
 - ENAHO01-2024-100
 - ENAHO01-2024-200
 - ENAHO01-2024-601
@@ -307,3 +307,35 @@ The following tables from the ENAHO 2024 survey are not included in this databas
 - Participación Ciudadana
 - Gobernabilidad, Democracia y Transparencia
 - Beneficios de ONGs
+
+# Mapping for Department Codes
+
+Use UBIGEO codes to map department codes to department names according tot he table below. However, **DO NOT USE** the first two digits of UBIGEO as department codes, instead, drop the last 4 digits of UBIGEO to get the department codes, given that some department codes have leading zeros.
+
+| Code | Department  |
+|------|-------------|
+| 01 | AMAZONAS      |
+| 02 | ANCASH        |
+| 03 | APURIMAC      |
+| 04 | AREQUIPA      |
+| 05 | AYACUCHO      |
+| 06 | CAJAMARCA     |
+| 07 | CALLAO        |
+| 08 | CUSCO         |
+| 09 | HUANCAVELICA  |
+| 10 | HUANUCO       |
+| 11 | ICA           |
+| 12 | JUNIN         |
+| 13 | LA LIBERTAD   |
+| 14 | LAMBAYEQUE    |
+| 15 | LIMA          |
+| 16 | LORETO        |
+| 17 | MADRE DE DIOS |
+| 18 | MOQUEGUA      |
+| 19 | PASCO         |
+| 20 | PIURA         |
+| 21 | PUNO          |
+| 22 | SAN MARTIN    |
+| 23 | TACNA         |
+| 24 | TUMBES        |
+| 25 | UCAYALI       |

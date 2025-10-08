@@ -2,7 +2,7 @@
 The Gran Encuesta Integrada de Hogares (GEIH) 2024, conducted by Colombia’s National Administrative Department of Statistics (DANE), is the country’s largest household survey, with an annual sample of about 315,000 households. Building on decades of labor and living conditions surveys and redesigned in 2022 using the 2018 Census framework, the GEIH provides comprehensive information on the labor market, household incomes, monetary poverty, and extreme poverty. It captures employment, unemployment, underemployment, income sources, and population characteristics such as education, health coverage, ethnicity, and other demographic factors, producing reliable indicators essential for analyzing labor dynamics and informing public policy.
 
 ## Tables
-The geih-2024 database is composed by 8 different tables:
+The geih-2024 database is composed by 10 different tables:
 - DBF_GECH_45_21
 - DBF_GECH_6_10
 - DBF_GECH_6_13

@@ -16,7 +16,7 @@ from esma.agents.esma import ESMAAgent
 
 class ChatRequest(BaseModel):
     """Request model for chat endpoints"""
-    message: str = Field(..., description="User query about ENAHO or GEIH databases")
+    message: str = Field(..., description="User query about databases")
     thread_id: Optional[str] = Field(None, description="Thread ID for conversation continuity")
 
 
@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ESMA SQL Agent API",
-    description="API for querying ENAHO and GEIH household survey databases",
+    description="API for querying household survey databases",
     version="1.0.0",
     lifespan=lifespan
 )

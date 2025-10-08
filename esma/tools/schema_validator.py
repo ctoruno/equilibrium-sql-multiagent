@@ -16,7 +16,7 @@ from esma.utils.bigquery_client import BigQueryClient
 class SchemaValidatorInput(BaseModel):
     """Input schema for SchemaValidator tool."""
     sql_query: str = Field(description="SQL query to validate")
-    database: Literal["enaho", "geih"] = Field(description="Target database")
+    database: Literal["enaho", "geih", "ephc", "enemdu"] = Field(description="Target database")
 
 
 class SchemaValidator(BaseTool):

@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+AVAILABLE_DATABASES = ["enaho-2024", "geih-2024", "ephc-2024", "enemdu-2024"]
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ class BigQueryDataUploader:
             source_bucket: Survey to process
         """
 
-        if survey not in ["enaho-2024", "geih-2024"]:
+        if survey not in AVAILABLE_DATABASES:
             logger.error("Error: Survey must be either 'enaho-2024' or 'geih-2024' ❌")
             return
         else:
@@ -37,14 +39,31 @@ class BigQueryDataUploader:
             self.bucket_name = "sql-multiagent-enaho-2024"
             self.data_encoding = "latin1"
             self.delimiter = ","
+            self.decimal = "."
             self.data_format = ".dta"
 
         if self.survey in ["geih-2024"]:
             self.dataset = "geih_2024"
             self.bucket_name = "sql-multiagent-geih-2024"
             self.data_encoding = "utf-8"
+            self.delimiter = ","  # Most GEIH TABLES ALSO USE SEMICOLON AS DELIMITER
+            self.decimal = "."
+            self.data_format = ".csv"
+        
+        if self.survey in ["ephc-2024"]:
+            self.dataset = "ephc_2024"
+            self.bucket_name = "sql-multiagent-ephc-2024"
+            self.data_encoding = "utf-8"
+            self.delimiter = ";"
+            self.decimal = ","
+            self.data_format = ".csv"
+        
+        if self.survey in ["enemdu-2024"]:
+            self.dataset = "enemdu_2024"
+            self.bucket_name = "sql-multiagent-enemdu-2024"
+            self.data_encoding = "utf-8"
             self.delimiter = ","
-            # self.delimiter = ";"   # Most GEIH TABLES USE SEMICOLON AS DELIMITER
+            self.decimal = "."
             self.data_format = ".csv"
 
         self.project_id = project_id
@@ -53,7 +72,14 @@ class BigQueryDataUploader:
 
         
     def sanitize_column_name(self, column_name: str) -> str:
-        sanitized = column_name.replace('Ñ', 'N').replace('ñ', 'N').replace('$', '_')
+        sanitized = (
+            column_name
+            .replace('Ñ', 'N')
+            .replace('ñ', 'n')
+            .replace('$', '_')
+            .replace('.', '_')
+            .upper()
+        )
         return sanitized
     
     
@@ -100,7 +126,9 @@ class BigQueryDataUploader:
             df = pd.read_csv(
                 io.StringIO(data),
                 encoding=self.data_encoding,
-                delimiter=self.delimiter
+                delimiter=self.delimiter,
+                decimal=self.decimal,
+                low_memory=False
             )
         
         if self.data_format == ".dta":
@@ -246,8 +274,8 @@ def main():
     
     args = parser.parse_args()
 
-    if args.survey not in ["enaho-2024", "geih-2024"]:
-        logger.error("Error: Survey must be either 'enaho-2024' or 'geih-2024' ❌")
+    if args.survey not in AVAILABLE_DATABASES:
+        logger.error("Error: Survey must a valid survey database ❌")
         return
     
     if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):

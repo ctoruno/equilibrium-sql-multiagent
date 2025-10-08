@@ -14,7 +14,7 @@ from esma.utils.bigquery_client import BigQueryClient
 
 class TableDescriptionRetrieverInput(BaseModel):
     """Input schema for TableDescriptionRetriever tool."""
-    database: Literal["enaho", "geih"] = Field(description="Target database")
+    database: Literal["enaho", "geih", "ephc", "enemdu"] = Field(description="Target database")
 
 
 class TableDescriptionRetriever(BaseTool):
